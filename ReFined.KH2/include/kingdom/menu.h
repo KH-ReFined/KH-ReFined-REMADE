@@ -1,0 +1,28 @@
+#pragma once
+
+#include <cstdint>
+
+namespace YS
+{
+	class MENU
+	{
+	public:
+		using PauseExecTask_t = void(*)(const char* self);
+		static PauseExecTask_t PauseExecTask;
+
+		using CampStart_t = void(*)(int type, long param);
+		static CampStart_t CampStart;
+
+		static bool* IsMenu;
+		static char* MenuType;
+		static char* SubMenuType;
+
+		static uint8_t* CampOptions;
+
+		static uint64_t pint_config;
+		static uint64_t pint_gameover;
+		static uint64_t pint_camp2ld;
+		static uint64_t pint_suboptionselect;
+		static uint64_t pint_dialogbase;
+	};
+}

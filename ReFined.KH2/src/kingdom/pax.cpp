@@ -1,0 +1,33 @@
+#include "pax.h"
+#include "converter.h"
+#include "SigScan.h"
+
+#include <stdint.h>
+															
+char* ryj::PAX::PaxList = ResolveRelativeAddress<char*>("\x40\x53\x48\x83\xEC\x20\x4C\x8B\x02\x48\x8B\xD9\x4C\x89\x01\x49\x8D\x40\x10\x48\x89\x41\x08\x48\x83\xC1\x10\x49\x63\x50\x0C\x49\x03\xD0\xE8\x00\x00\x00\x00\x48\x83\x3D\x00\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx????x", 0x2A) + 0x01;
+
+void ryj::PAX::Init(char* PAX, char* Data)
+{
+	uint64_t _paxAddress = reinterpret_cast<uint64_t>(PAX);
+	uint64_t _dataAddress = reinterpret_cast<uint64_t>(Data);
+
+	uint64_t _readInit = *reinterpret_cast<const uint64_t*>(PAX + 0x28);
+	uint64_t _fetchPaxStart = _dataAddress + *reinterpret_cast<const uint32_t*>(Data + 0x0C);
+
+	memcpy(PAX + 0x10, &_fetchPaxStart, 0x08);
+
+	if (_readInit == 0x00)
+	{
+		uint64_t _paxList = *reinterpret_cast<const uint64_t*>(ryj::PAX::PaxList);
+
+		uint32_t _convertPAX = PC::CONVERTER::LONG_TO_INT_ADDRESS(_paxAddress);
+		uint32_t _literalZero = 0x00;
+
+		char* _paxListPoint = reinterpret_cast<char*>(_paxList);
+
+		memcpy(_paxListPoint + 0x28, &_convertPAX, 0x04);
+		memcpy(PAX + 0x28, &_literalZero, 0x04);
+
+		memcpy(ryj::PAX::PaxList, &_paxAddress, 0x08);
+	}
+}
