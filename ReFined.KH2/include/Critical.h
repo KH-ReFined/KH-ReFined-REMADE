@@ -43,5 +43,6 @@ namespace ReFined
 		static void HandleCrown();
 		static void HandleConfiguration();
 		static void HandleIntro();
+		static void PrologueSkip();
 	};
 }
