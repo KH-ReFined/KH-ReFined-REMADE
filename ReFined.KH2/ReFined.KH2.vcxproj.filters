@@ -195,6 +195,9 @@
     <ClInclude Include="include\kingdom\world.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
+    <ClInclude Include="include\intro_menu.h">
+      <Filter>Header Files\refined_classes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\discord\activity_manager.cpp">
@@ -337,6 +340,9 @@
     </ClCompile>
     <ClCompile Include="src\kingdom\world.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\intro_menu.cpp">
+      <Filter>Source Files\refined_classes</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

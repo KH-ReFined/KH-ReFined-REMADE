@@ -192,3 +192,17 @@ inline void RedirectLEA(char* addr, char* dest)
     uint32_t _instCalcAddr = dest - _instEndAddr;
     memcpy(addr + 0x03, &_instCalcAddr, 0x04);
 }
+
+inline void RedirectMOV(char* addr, char* dest)
+{
+    auto _instEndAddr = addr + 0x06;
+    uint32_t _instCalcAddr = dest - _instEndAddr;
+    memcpy(addr + 0x02, &_instCalcAddr, 0x04);
+}
+
+inline void RedirectCMP(char* addr, char* dest)
+{
+    auto _instEndAddr = addr + 0x07;
+    uint32_t _instCalcAddr = dest - _instEndAddr;
+    memcpy(addr + 0x02, &_instCalcAddr, 0x04);
+}

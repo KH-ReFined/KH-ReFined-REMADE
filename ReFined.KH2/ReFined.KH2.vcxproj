@@ -41,6 +41,7 @@
     <ClInclude Include="include\discord\types.h" />
     <ClInclude Include="include\discord\user_manager.h" />
     <ClInclude Include="include\discord\voice_manager.h" />
+    <ClInclude Include="include\intro_menu.h" />
     <ClInclude Include="include\kingdom\area.h" />
     <ClInclude Include="include\kingdom\axa.h" />
     <ClInclude Include="include\kingdom\cache_buff.h" />
@@ -92,6 +93,7 @@
     <ClCompile Include="src\discord\user_manager.cpp" />
     <ClCompile Include="src\discord\voice_manager.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
+    <ClCompile Include="src\intro_menu.cpp" />
     <ClCompile Include="src\kingdom\area.cpp" />
     <ClCompile Include="src\kingdom\cache_buff.cpp" />
     <ClCompile Include="src\kingdom\cmconfig.cpp" />

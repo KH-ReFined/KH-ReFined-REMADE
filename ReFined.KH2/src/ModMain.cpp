@@ -17,6 +17,7 @@
 #include "Continuous.h"
 #include "Critical.h"
 #include "SigScan.h"
+#include "intro_menu.h"
 #include "config_menu.h"
 #include "continue_menu.h"
 #include "memory_manager.h"
@@ -124,7 +125,9 @@ extern "C"
 		// ======================================================== //
 
 		ReFined::MemoryManager::Allocate("CONFIG_MEMORY", 0x200);
+		ReFined::MemoryManager::Allocate("INTRO_MEMORY", 0x300);
 
+		ReFined::IntroMenu::Submit();
 		ReFined::ConfigMenu::Submit();
 		ReFined::Continue::Submit();
 	}
