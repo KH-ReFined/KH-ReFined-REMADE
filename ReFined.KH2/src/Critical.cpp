@@ -1,4 +1,5 @@
 #include "Critical.h"
+#include <memory_manager.h>
 
 using namespace std;
 
@@ -38,6 +39,9 @@ bool HADES_CHANGED;
 uint8_t HADES_ITERATOR = 0xFF;
 bool RETRY_BLACKLIST;
 uint8_t RETRY_MODE;
+
+bool INTRO_APPLIED;
+bool ENFORCE_INTRO;
 
 bool CONFIG_INIT;
 bool CONFIG_FETCH;
@@ -752,4 +756,32 @@ void ReFined::Critical::HandleConfiguration()
 
 	else if (*YS::TITLE::IsTitle && CONFIG_FIRST_INIT)
 		CONFIG_FIRST_INIT = false;
+}
+
+void ReFined::Critical::HandleIntro()
+{
+	if (*YS::TITLE::IsTitle)
+	{
+		if (INTRO_APPLIED)
+			INTRO_APPLIED = false;
+
+		ENFORCE_INTRO = *YS::TITLE::IntroSelect == 0x00;
+
+		SETTING_MEMORY = 0x0408 | 
+			(*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x204) == 0x00 ? 0x0001 : 0x0000) |
+			(*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x208) == 0x00 ? 0x0004 : (*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x208) == 0x01 ? 0x0002 : 0x0000)) |
+			(*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x20C) == 0x00 ? 0x2000 : 0x0000);
+	}
+
+	else if (!*YS::TITLE::IsTitle && !INTRO_APPLIED && ENFORCE_INTRO && YS::AREA::Current->World == 0x02 && (YS::AREA::Current->Room == 0x01 || YS::AREA::Current->Room == 0x20))
+	{
+		memcpy(YS::AREA::SaveData + 0x41A4, &SETTING_MEMORY, 0x02);
+
+		ReFined::Critical::SAVE_MODE = (SETTING_MEMORY & 0x0004) ? 0x00 : ((SETTING_MEMORY & 0x0002) == 0x02 ? 0x01 : 0x02);
+		ReFined::Critical::CONTROLLER_MODE = (SETTING_MEMORY & 0x2000) == 0x2000;
+
+		ENFORCE_INTRO = false;
+		INTRO_APPLIED = true;
+		CONFIG_FIRST_INIT = true;
+	}
 }

@@ -42,5 +42,6 @@ namespace ReFined
 		static void RetryBattles();
 		static void HandleCrown();
 		static void HandleConfiguration();
+		static void HandleIntro();
 	};
 }

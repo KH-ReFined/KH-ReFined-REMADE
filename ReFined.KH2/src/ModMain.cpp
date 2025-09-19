@@ -143,6 +143,7 @@ extern "C"
 		ReFined::Critical::RegisterMovement();
 		ReFined::Critical::RetryBattles();
 		ReFined::Critical::HandleConfiguration();
+		ReFined::Critical::HandleIntro();
 
 		ReFined::Continuous::DiscordRPC();
 		ReFined::Continuous::FixSummonBGM();

@@ -9,5 +9,6 @@ namespace YS
 	{
 		public:
 			static bool* IsTitle;
+			static uint8_t* IntroSelect;
 	};
 }
