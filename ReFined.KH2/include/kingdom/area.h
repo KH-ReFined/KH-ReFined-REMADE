@@ -43,5 +43,8 @@ namespace YS
 			static bool* IsInMap;
 			static char* SaveData;
 			static char* BattleStatus;
+			static char* IsVendor;
+
+			static uint64_t pint_enemyinfo;
 	};
 }

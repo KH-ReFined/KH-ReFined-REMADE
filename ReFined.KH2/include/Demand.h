@@ -6,5 +6,6 @@ namespace ReFined
 	{
 		public:
 			static void TriggerReset();
+			static void EncounterPlus();
 	};
 }
