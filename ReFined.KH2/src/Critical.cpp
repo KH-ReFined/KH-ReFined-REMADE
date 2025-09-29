@@ -1,5 +1,7 @@
 #include "Critical.h"
 #include <memory_manager.h>
+#include <sstream>
+#include <iomanip>
 
 using namespace std;
 
@@ -62,12 +64,25 @@ vector <uint8_t> INST_CAMPBITWISE;
 vector <uint8_t> INST_CAMPINIT;
 
 char* MENUSELECT_OFFSET = SignatureScan<char*>("\x40\x55\x53\x48\x8D\x6C\x24\xB1\x48\x81\xEC\x98\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxx0000");
+char* INFORMATION_OFFSET = SignatureScan<char*>("\x41\xB8\x40\x00\x00\x00\xB9\xAA\x00\x00\x00\x66\x2B\xC1\x66\x44\x89\x44\x24\x20\x44\x0F\xB7\x43\x2C\x48\x8D\x8B\x60\x02\x00\x00\x44\x0F\xB7\xC8\x33\xD2", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 uint8_t ROXAS_SKIP_STAGE;
 bool SKIPPING_ROXAS;
 
+bool SET_ADJUSTMENT;
+
 ReFined::Continue::Entry RETRY_ENTRY(0x0002, 0x8AB1);
 ReFined::Continue::Entry PREPARE_ENTRY(0x0002, 0x5727);
+
+vector<char*> POSITIVE_ASPECT_SHORT = MultiSignatureScan("\xC7\x00\x00\x00\x55\x00\x00\x00", "x???xxxx");
+vector<char*> NEGATIVE_ASPECT_SHORT = MultiSignatureScan("\xC7\x00\x00\x00\xAB\xFF\xFF\xFF", "x???xxxx");
+vector<char*> POSITIVE_ASPECT_LONG = MultiSignatureScan("\xC7\x00\x00\x00\x00\x00\x55\x00\x00\x00", "x?????xxxx");
+vector<char*> NEGATIVE_ASPECT_LONG = MultiSignatureScan("\xC7\x00\x00\x00\x00\x00\xAB\xFF\xFF\xFF", "x?????xxxx");
+
+vector<char*> POSITIVE_ASPECT_BYTE;
+vector<char*> NEGATIVE_ASPECT_BYTE;
+												
+char* VIEWPORT3D_ADDR = ResolveRelativeAddress<char*>("\x48\x8B\xC4\x57\x41\x56\x41\x57\x48\x81\xEC\x50\x01\x00\x00\x48\xC7\x44\x24\x20\xFE\xFF\xFF\xFF\x48\x89\x58\x10\x48\x89\x68\x18\x48\x89\x70\x20\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\x40\x01\x00\x00\x48\x8B\xE9\x33\xD2\x41\xB8\x00\x01\x00\x00\x48\x8D\x4C\x24\x30\xE8\x00\x00\x00\x00\x45\x33\xFF", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx", 0x311);
 
 // Handles the registration and activation of Magic outside of load zones.
 // Used *generally* with Rando, but can be used for other purposes by other mods.
@@ -184,12 +199,16 @@ void ReFined::Critical::RegisterMovement()
 	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
 
 	// See if there is specifically a Cutscene playing.
+	auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
+
 	auto _fetchEvent = CalculatePointer(YS::EVENT::pint_eventinfo, { 0x04 });
 	bool _isCutscene = _fetchEvent != 0x00 && *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xCAFEEFAC &&
 		*reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xEFACCAFE;
 
+	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
+
 	// If the game is loaded:
-	if (*YS::AREA::IsInMap && _soraGauge != 0x00 && !_isCutscene)
+	if (*YS::AREA::IsInMap && _commandPointer != 0x00 && _soraGauge != 0x00 && !_isCutscene && _eventPointer == 0x00)
 	{
 		// If  the ability denotation is not initialized:
 		if (ABILITY_ARRAY.size() == 0x00)
@@ -238,6 +257,8 @@ void ReFined::Critical::ShowInformation()
 	// Fetch the presence of Sora's Gauge [Edge Case for 100 Acre Woods minigames.]
 	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
 
+	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
+
 	// See if there is specifically a Cutscene playing.
 	auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
 
@@ -246,7 +267,7 @@ void ReFined::Critical::ShowInformation()
 																		  *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xEFACCAFE;
 
 	// If the game is loaded, and there isn't a menu present, and it's not a cutscene:
-	if (*YS::AREA::IsInMap && !*YS::MENU::IsMenu && !_isCutscene && _soraGauge != 0x00)
+	if (*YS::AREA::IsInMap && _commandPointer != 0x00 && !*YS::MENU::IsMenu && !_isCutscene && _soraGauge != 0x00 && _eventPointer == 0x00)
 	{
 		// Fetch the fade status and the enable line.
 		auto _fetchFade = *(dk::JUMPEFFECT::FadeStatus + 0x108);
@@ -879,6 +900,135 @@ void ReFined::Critical::PrologueSkip()
 
 				free(_loadBAR);
 			}
+		}
+	}
+}
+
+void ReFined::Critical::AspectCorrection()
+{
+	float _resolutionHorizontal = *reinterpret_cast<float*>(VIEWPORT3D_ADDR + 0x10); 
+	float _resolutionVertical = *reinterpret_cast<float*>(VIEWPORT3D_ADDR + 0x14);
+
+	float _commonDiv = 0x00F;
+
+	if (_resolutionHorizontal != 0x00 && _resolutionVertical != 0x00)
+	{
+		uint32_t _offsetPositive = 0x55;
+		uint32_t _offsetNegative = 0xFFFFFFAB;
+
+		short _offsetInformation = -1;
+
+		auto _tempWidth = _resolutionHorizontal;
+		auto _tempHeight = _resolutionVertical;
+
+		while (_tempWidth != 0 && _tempHeight != 0)
+		{
+			if (_tempWidth > _tempHeight)
+				_tempWidth = fmodf(_tempWidth, _tempHeight);
+
+			else
+				_tempHeight = fmodf(_tempHeight, _tempWidth);
+		}
+
+		_commonDiv = _tempWidth == 0 ? _tempHeight : _tempWidth;
+
+		auto _ratioNum = _resolutionHorizontal / _commonDiv;
+		auto _checkRatio = _resolutionVertical / _commonDiv;
+
+		if (_checkRatio != 9)
+		{
+			auto _commonMulp = 9 / _checkRatio;
+			_ratioNum = _ratioNum * _commonMulp;
+		}
+
+		auto _ratioMultiplier = 0.0625F * _ratioNum;
+
+		memcpy(VIEWPORT3D_ADDR + 0x20, &_ratioMultiplier, 0x04);
+
+		auto _heightFactor = _resolutionVertical / 1080;
+		auto _widthCalc = floorf(_resolutionHorizontal / _heightFactor);
+
+		_offsetPositive = ceilf(0.177F * (_widthCalc - 1440));
+		_offsetNegative = _offsetPositive * -1;
+
+		if (_ratioNum != 16)
+			_offsetInformation = floorf(-0.11 * (_widthCalc - 1440));
+
+		if (POSITIVE_ASPECT_BYTE.size() == 0x00)
+		{
+			for (int i = 0xB8; i < 0xC0; i++)
+			{
+				stringstream stream;
+				stream << char(i);
+
+				auto _listPos = MultiSignatureScan(stream.str().append("\x55\x00\x00\x00").c_str(), "xxxxx");
+				auto _listNeg = MultiSignatureScan(stream.str().append("\xAB\xFF\xFF\xFF").c_str(), "xxxxx");
+
+				for (auto _ptr : _listPos)
+				{
+					if (_ptr > moduleInfo.startAddr + 0x1A0000)
+						continue;
+
+					POSITIVE_ASPECT_BYTE.push_back(_ptr);
+				}
+
+				for (auto _ptr : _listNeg)
+				{
+					if (_ptr > moduleInfo.startAddr + 0x1A0000)
+						continue;
+
+					NEGATIVE_ASPECT_BYTE.push_back(_ptr);
+				}
+			}
+		}
+
+		for (int i = 0; i < POSITIVE_ASPECT_SHORT.size(); i++)
+			memcpy(POSITIVE_ASPECT_SHORT[i] + 0x04, &_offsetPositive, 0x04);
+		for (int i = 0; i < NEGATIVE_ASPECT_SHORT.size(); i++)
+			memcpy(NEGATIVE_ASPECT_SHORT[i] + 0x04, &_offsetNegative, 0x04);
+
+		for (int i = 0; i < POSITIVE_ASPECT_LONG.size(); i++)
+			memcpy(POSITIVE_ASPECT_LONG[i] + 0x06, &_offsetPositive, 0x04);
+		for (int i = 0; i < NEGATIVE_ASPECT_LONG.size(); i++)
+			memcpy(NEGATIVE_ASPECT_LONG[i] + 0x06, &_offsetNegative, 0x04);
+
+		for (int i = 0; i < POSITIVE_ASPECT_BYTE.size(); i++)
+			memcpy(POSITIVE_ASPECT_BYTE[i] + 0x01, &_offsetPositive, 0x04);
+		for (int i = 0; i < NEGATIVE_ASPECT_BYTE.size(); i++)
+			memcpy(NEGATIVE_ASPECT_BYTE[i] + 0x01, &_offsetNegative, 0x04);
+
+		memcpy(INFORMATION_OFFSET + 0x0B, &_offsetInformation, 0x02);
+
+		auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
+		auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
+
+		if ((_commandPointer == 0x00 || _eventPointer != 0x00 || !*YS::AREA::IsInMap) && _offsetPositive != 0x55)
+		{
+			vector<char*> _fetchMission =
+			{
+				YS::CACHE_BUFF::SearchByName("msn/us/EH26_MS108.bar", -1),
+				YS::CACHE_BUFF::SearchByName("msn/us/EH14_MS103.bar", -1),
+				YS::CACHE_BUFF::SearchByName("msn/us/HB33_FM_LEX.bar", -1)
+			};
+
+			bool _isFetched = any_of(_fetchMission.begin(), _fetchMission.end(), [](char* x) {
+				return (x != nullptr);
+				});
+
+			if (_isFetched)
+			{
+				uint32_t _positiveDefault = 0x55;
+				uint32_t _negativeDefault = -0x55;
+
+				memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x21, &_positiveDefault, 0x04);
+				memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x29, &_negativeDefault, 0x04);
+			}
+		}
+
+		else if (_commandPointer != 0x00 && _eventPointer == 0x00 && *YS::AREA::IsInMap)
+		{
+			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x21, &_offsetPositive, 0x04);
+			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x29, &_offsetNegative, 0x04);
 		}
 	}
 }

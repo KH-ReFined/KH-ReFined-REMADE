@@ -8,7 +8,7 @@ namespace YS
 	class CACHE_BUFF
 	{
 	public:
-		using SearchByName_t = char* (*)(char* fileName, int pri);
+		using SearchByName_t = char* (*)(const char* fileName, int pri);
 		static SearchByName_t SearchByName;
 	};
 }

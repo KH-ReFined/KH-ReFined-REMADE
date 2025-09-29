@@ -20,6 +20,7 @@
 #include "sound.h"
 #include "world.h"
 #include "discord.h"
+#include "command_draw.h"
 
 #include "Continuous.h"
 #include "Critical.h"
@@ -48,6 +49,7 @@ vector<string> TEXT_MODE;
 vector<string> TEXT_FORM;
 
 bool IS_MIRAGE;
+bool RPC_ENABLED = true;
 
 uint8_t* COMMAND_TYPE = ResolveRelativeAddress<uint8_t*>("\x48\x83\xEC\x28\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x05\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\x48\x83\xC4\x28\xE9\x00\x00\x00\x00\xCC\xCC\x48\x8D\x05\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\xC3", "xxxxxxx????x????xxx????xxx????xxx????xxxxx????xxxxx????xxx????x", 0x1A);
 
@@ -80,6 +82,7 @@ void ReFined::Continuous::AutosaveLogic()
 		}
 	}
 
+	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
 	const char* _gaugeTypePointer = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88 });
 	const char* _mainPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
 
@@ -118,7 +121,7 @@ void ReFined::Continuous::AutosaveLogic()
 		SAVE_AREA = *YS::AREA::Current;
 	}
 
-	if (_gaugeTypePointer != 0x00)
+	if (_commandPointer != 0x00 && _gaugeTypePointer != 0x00)
 	{
 		bool _checkBlacklist = YS::AREA::Current->World == 0x0F || YS::AREA::Current->World == 0x0B ||
 					     	  (YS::AREA::Current->World == 0x08 && YS::AREA::Current->Room == 0x03) ||
@@ -132,7 +135,7 @@ void ReFined::Continuous::AutosaveLogic()
 			if (SAVE_AREA.World == 0x00)
 				SAVE_AREA = *YS::AREA::Current;
 
-			bool _checkStatus = !*YS::MENU::IsMenu && *YS::AREA::IsInMap && _mainPointer == 0x00 && *YS::AREA::BattleStatus == 0x00 && SAVE_AREA.World >= 0x02 && SYSTEM_LOADED && ReFined::Critical::SAVE_MODE != 0x02 && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00;
+			bool _checkStatus = !*YS::MENU::IsMenu && _commandPointer != 0x00 && *YS::AREA::IsInMap && _mainPointer == 0x00 && *YS::AREA::BattleStatus == 0x00 && SAVE_AREA.World >= 0x02 && SYSTEM_LOADED && ReFined::Critical::SAVE_MODE != 0x02 && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00;
 
 			if (!_checkStatus)
 			{
@@ -333,110 +336,119 @@ void ReFined::Continuous::DiscordRPC()
 {
 	int _resultant = 0xFF;
 
-	if (Discord == nullptr)
+	if (RPC_ENABLED)
 	{
-		discord::Core::Create(833511404274974740, DiscordCreateFlags_NoRequireDiscord, &Discord);
-
-		const auto _currTime = chrono::system_clock::now();
-		auto _unixTime = static_cast<time_t>(chrono::duration_cast<chrono::seconds>(_currTime.time_since_epoch()).count());
-
-		BEGIN_TIMESTAMP = _unixTime;
-
-		RICH_PRESENCE.SetApplicationId(833511404274974740);
-		RICH_PRESENCE.GetTimestamps().SetStart(BEGIN_TIMESTAMP);
-
-		for (uint16_t i = 0x5740; i < 0x5745; i++)
+		if (Discord == nullptr)
 		{
-			auto _msgData = YS::MESSAGE::GetData(i);
-			auto _msgConvert = YS::MESSAGE::DecodeKHSCII(_msgData);
+			discord::Core::Create(833511404274974740, DiscordCreateFlags_NoRequireDiscord, &Discord);
 
-			TEXT_PRESENCE.push_back(_msgConvert);
+			if (Discord == nullptr)
+			{
+				RPC_ENABLED = false;
+				return;
+			}
+
+			const auto _currTime = chrono::system_clock::now();
+			auto _unixTime = static_cast<time_t>(chrono::duration_cast<chrono::seconds>(_currTime.time_since_epoch()).count());
+
+			BEGIN_TIMESTAMP = _unixTime;
+
+			RICH_PRESENCE.SetApplicationId(833511404274974740);
+			RICH_PRESENCE.GetTimestamps().SetStart(BEGIN_TIMESTAMP);
+
+			for (uint16_t i = 0x5740; i < 0x5745; i++)
+			{
+				auto _msgData = YS::MESSAGE::GetData(i);
+				auto _msgConvert = YS::MESSAGE::DecodeKHSCII(_msgData);
+
+				TEXT_PRESENCE.push_back(_msgConvert);
+			}
+
+			for (auto i = 0x00; i < 0x04; i++)
+			{
+				uint16_t _stringID = 0x3738 + i;
+
+				if (i == 0x03)
+					_stringID = 0x4E30;
+
+				auto _msgData = YS::MESSAGE::GetData(_stringID);
+				auto _msgConvert = YS::MESSAGE::DecodeKHSCII(_msgData);
+
+				TEXT_MODE.push_back(_msgConvert);
+			}
+
+			for (auto i = 0x00; i < 0x06; i++)
+			{
+				uint16_t _stringID = 0x01E5 + (i >= 0x02 ? i - 1 : i);
+
+				if (i == 0x02)
+					_stringID = 0x4E7F;
+
+				auto _msgData = YS::MESSAGE::GetData(_stringID);
+				auto _msgConvert = YS::MESSAGE::DecodeKHSCII(_msgData);
+
+				TEXT_FORM.push_back(_msgConvert);
+			}
+
+			if (YS::FILE::GetSize("mirageArena.bin") != 0x00)
+				IS_MIRAGE = true;
 		}
-			
-		for (auto i = 0x00; i < 0x04; i++)
+
+		if (*YS::TITLE::IsTitle)
 		{
-			uint16_t _stringID = 0x3738 + i;
+			RICH_PRESENCE.GetAssets().SetLargeImage("title");
 
-			if (i == 0x03)
-				_stringID = 0x4E30;
+			RICH_PRESENCE.SetState("");
+			RICH_PRESENCE.SetDetails("");
 
-			auto _msgData = YS::MESSAGE::GetData(_stringID);
-			auto _msgConvert = YS::MESSAGE::DecodeKHSCII(_msgData);
+			RICH_PRESENCE.GetAssets().SetLargeText("");
+			RICH_PRESENCE.GetAssets().SetSmallText("");
 
-			TEXT_MODE.push_back(_msgConvert);
+			RICH_PRESENCE.GetAssets().SetSmallImage("");
 		}
 
-		for (auto i = 0x00; i < 0x06; i++)
+		else if (YS::AREA::Current->World >= 0x02 && YS::AREA::Current->World <= 0x12)
 		{
-			uint16_t _stringID = 0x01E5 + (i >= 0x02 ? i - 1 : i);
+			bool _checkUnderdrome = YS::AREA::Current->World == 0x06 && YS::AREA::Current->Room == 0x09 && YS::AREA::Current->Set.Map >= 0xBD && YS::AREA::Current->Set.Map >= 0xC4;
 
-			if (i == 0x02)
-				_stringID = 0x4E7F;
+			auto _detailText = _checkUnderdrome ? TEXT_PRESENCE.at(0x02) : TEXT_PRESENCE.at(0x00);
 
-			auto _msgData = YS::MESSAGE::GetData(_stringID);
-			auto _msgConvert = YS::MESSAGE::DecodeKHSCII(_msgData);
+			_detailText.replace(_detailText.find("[0]"), 0x03, to_string(*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308)));
+			_detailText.replace(_detailText.find("[1]"), 0x03, *(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308 + 0x180) > 0x00 ? to_string(*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308 + 0x180)) : TEXT_PRESENCE.at(0x04));
 
-			TEXT_FORM.push_back(_msgConvert);
+			if (_checkUnderdrome)
+				_detailText.replace(_detailText.find("[2]"), 0x03, to_string(YS::AREA::Current->Entrance));
+
+			RICH_PRESENCE.SetDetails(_detailText.c_str());
+
+			auto _stateText = TEXT_PRESENCE.at(0x01);
+
+			_stateText.replace(_stateText.find("[0]"), 0x03, to_string(*(YS::AREA::SaveData + 0x24FF)));
+			_stateText.replace(_stateText.find("[1]"), 0x03, *(YS::AREA::SaveData + 0x3524) == 0x00 ? "N/A" : (*COMMAND_TYPE == 0x01 ? "Mickey" : TEXT_FORM.at(*(YS::AREA::SaveData + 0x3524) - 0x01)));
+
+			RICH_PRESENCE.SetState(_stateText.c_str());
+
+			auto _fetchTime = floorf(*reinterpret_cast<const uint32_t*>(YS::AREA::SaveData + 0x2444) / 60.0F);
+
+			auto _playHours = floorf(_fetchTime / 3600.0F);
+			auto _playMinutes = floorf(fmodf(_fetchTime, 3600.0F) / 60.0F);
+
+			ostringstream _timeStream;
+			auto _timeText = TEXT_PRESENCE.at(0x03);
+
+			_timeStream << std::setw(2) << std::setfill('0') << _playHours << ":"
+				<< std::setw(2) << std::setfill('0') << _playMinutes;
+
+			_timeText.replace(_timeText.find("[0]"), 0x03, _timeStream.str());
+
+			RICH_PRESENCE.GetAssets().SetLargeText(_timeText.c_str());
+			RICH_PRESENCE.GetAssets().SetSmallText(TEXT_MODE.at(*(YS::AREA::SaveData + 0x2498)).c_str());
+
+			RICH_PRESENCE.GetAssets().SetSmallImage(*YS::AREA::BattleStatus == 0x00 ? "safe" : (*YS::AREA::BattleStatus == 0x01 ? "mob" : "boss"));
+			RICH_PRESENCE.GetAssets().SetLargeImage(IS_MIRAGE && YS::AREA::Current->World == 0x0B ? "ma" : string(YS::WORLD::GetName(YS::AREA::Current->World), 0x02).c_str());
 		}
 
-		if (YS::FILE::GetSize("mirageArena.bin") != 0x00)
-			IS_MIRAGE = true;
+		Discord->ActivityManager().UpdateActivity(RICH_PRESENCE, [&_resultant](discord::Result v) { _resultant = (int)v; });
+		Discord->RunCallbacks();
 	}
-
-	if (*YS::TITLE::IsTitle)
-	{
-		RICH_PRESENCE.GetAssets().SetLargeImage("title");
-
-		RICH_PRESENCE.SetState("");
-		RICH_PRESENCE.SetDetails("");
-
-		RICH_PRESENCE.GetAssets().SetLargeText("");
-		RICH_PRESENCE.GetAssets().SetSmallText("");
-
-		RICH_PRESENCE.GetAssets().SetSmallImage("");
-	}
-
-	else if (YS::AREA::Current->World >= 0x02 && YS::AREA::Current->World <= 0x12)
-	{
-		bool _checkUnderdrome = YS::AREA::Current->World == 0x06 && YS::AREA::Current->Room == 0x09 && YS::AREA::Current->Set.Map >= 0xBD && YS::AREA::Current->Set.Map >= 0xC4;
-		
-		auto _detailText = _checkUnderdrome ? TEXT_PRESENCE.at(0x02) : TEXT_PRESENCE.at(0x00);
-
-		_detailText.replace(_detailText.find("[0]"), 0x03, to_string(*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308)));
-		_detailText.replace(_detailText.find("[1]"), 0x03, *(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308 + 0x180) > 0x00 ? to_string(*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308 + 0x180)) : TEXT_PRESENCE.at(0x04));
-
-		if (_checkUnderdrome)
-			_detailText.replace(_detailText.find("[2]"), 0x03, to_string(YS::AREA::Current->Entrance));
-
-		RICH_PRESENCE.SetDetails(_detailText.c_str());
-
-		auto _stateText = TEXT_PRESENCE.at(0x01);
-
-		_stateText.replace(_stateText.find("[0]"), 0x03, to_string(*(YS::AREA::SaveData + 0x24FF)));
-		_stateText.replace(_stateText.find("[1]"), 0x03, *(YS::AREA::SaveData + 0x3524) == 0x00 ? "N/A" : (*COMMAND_TYPE == 0x01 ? "Mickey" : TEXT_FORM.at(*(YS::AREA::SaveData + 0x3524) - 0x01)));
-
-		RICH_PRESENCE.SetState(_stateText.c_str());
-
-		auto _fetchTime = floorf(*reinterpret_cast<const uint32_t*>(YS::AREA::SaveData + 0x2444) / 60.0F);
-
-		auto _playHours = floorf(_fetchTime / 3600.0F);
-		auto _playMinutes = floorf(fmodf(_fetchTime, 3600.0F) / 60.0F);
-
-		ostringstream _timeStream;
-		auto _timeText = TEXT_PRESENCE.at(0x03);
-
-		_timeStream << std::setw(2) << std::setfill('0') << _playHours << ":"
-					<< std::setw(2) << std::setfill('0') << _playMinutes;
-
-		_timeText.replace(_timeText.find("[0]"), 0x03, _timeStream.str());
-
-		RICH_PRESENCE.GetAssets().SetLargeText(_timeText.c_str());
-		RICH_PRESENCE.GetAssets().SetSmallText(TEXT_MODE.at(*(YS::AREA::SaveData + 0x2498)).c_str());
-
-		RICH_PRESENCE.GetAssets().SetSmallImage(*YS::AREA::BattleStatus == 0x00 ? "safe" : (*YS::AREA::BattleStatus == 0x01 ? "mob" : "boss"));
-		RICH_PRESENCE.GetAssets().SetLargeImage(IS_MIRAGE && YS::AREA::Current->World == 0x0B ? "ma" : string(YS::WORLD::GetName(YS::AREA::Current->World), 0x02).c_str());
-	}
-
-	Discord->ActivityManager().UpdateActivity(RICH_PRESENCE, [&_resultant](discord::Result v) { _resultant = (int)v; });
-	Discord->RunCallbacks();
 }

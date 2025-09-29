@@ -22,6 +22,7 @@
 #include "information.h"
 #include "treasure_info.h"
 #include "jumpeffect.h"
+#include "command_draw.h"
 #include "member_table.h"
 #include "continue_menu.h"
 
@@ -44,5 +45,6 @@ namespace ReFined
 		static void HandleConfiguration();
 		static void HandleIntro();
 		static void PrologueSkip();
+		static void AspectCorrection();
 	};
 }
