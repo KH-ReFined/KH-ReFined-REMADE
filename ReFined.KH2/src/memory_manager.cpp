@@ -28,7 +28,10 @@ char* ReFined::MemoryManager::Fetch(string Input)
 
 void ReFined::MemoryManager::Allocate(string Key, size_t Size)
 {
+   DWORD lpflOldProtect = 0;
+
     MEMORY_BLOCK[Key] = alloc(_allocInstance, Size);
+    VirtualProtect(MEMORY_BLOCK[Key], Size, PAGE_EXECUTE_READWRITE, &lpflOldProtect);
 }
 
 void ReFined::MemoryManager::Free(string Key)
