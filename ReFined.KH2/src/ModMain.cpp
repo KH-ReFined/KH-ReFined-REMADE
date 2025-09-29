@@ -239,17 +239,55 @@ extern "C"
 			memcpy(_function + 0x19, &_fadeValue, 0x04);
 		}
 
+		// Simple counter offset hack.
+
+		auto _fetchSimpleCont = MultiSignatureScan("\x41\x8D\x46\xAB\x41\x89\x84\x3F\x8C\x0D\x00\x00", "xxxxxxxxxxxx");
+
+		for (auto _function : _fetchSimpleCont)
+		{
+			uint64_t _fetchCall = ResolveCallRelative(_function + 0x31);
+
+			vector<uint8_t> _replaceCounter
+			{
+				0x41, 0x8D, 0x86, 0x40, 0xFF, 0xFF, 0xFF,		// lea eax, [r14-0xC0]
+				0x41, 0x89, 0x84, 0x3F, 0x8C, 0x0D, 0x00, 0x00,	// mov [r15+rdi+0x0D8C], eax
+				0x3B, 0xB5, 0xB0, 0x0D, 0x00, 0x00,				// cmp esi, [rbp+0x0DB0];
+				0x7C, 0xB6,										// jl "_function - 0x33"
+				0x4C, 0x8B, 0xBC, 0x24, 0x88, 0x00, 0x00, 0x00,	// mov r15, [rsp+0x88]
+				0x48, 0x8B, 0xBC, 0x24, 0x80, 0x00, 0x00, 0x00,	// mov rdi, [rsp+0x80]
+				0x48, 0x8B, 0x5C, 0x24, 0x78,					// mov rbx, [rsp+0x78]
+				0x48, 0x8B, 0x4C, 0x24, 0x40,					// mov rcx, [rsp+0x40]
+				0x48, 0x31, 0xE1,								// xor rcx, rsp
+				0xE8, 0x00, 0x00, 0x00, 0x00,					// call "_fetchCall"
+				0x48, 0x83, 0xC4, 0x50,							// add rsp, 0x50
+				0x41, 0x5E,										// pop r14
+				0x5E,											// pop rsi
+				0x5D,											// pop rbp
+				0xC3											// ret
+			};
+
+			uint32_t _fetchCalc = static_cast<uint32_t>(_fetchCall - reinterpret_cast<uint64_t>(_function + 0x39));
+
+			memcpy(_function, _replaceCounter.data(), _replaceCounter.size());
+			memcpy(_function + 0x35, &_fetchCalc, 0x04);
+		}
+
 		// Disables culling. Causes some side effects that I don't believe anyone will notice.
 								
 		uint8_t _jmpByte = 0xEB;
-		auto _fetchCulling = SignatureScan<char*>("\x48\x8B\xC4\x48\x89\x58\x18\x48\x89\x70\x20\x55\x57\x41\x54\x41", "xxxxxxxxxxxxxxxx");
+		uint8_t _falseByte = 0x00;
 
-		memcpy(_fetchCulling + 0x11D, &_jmpByte, 0x01);
-		memcpy(_fetchCulling + 0x12B, &_jmpByte, 0x01);
-		memcpy(_fetchCulling + 0x133, &_jmpByte, 0x01);
-		memcpy(_fetchCulling + 0x141, &_jmpByte, 0x01);
-		memcpy(_fetchCulling + 0x149, &_jmpByte, 0x01);
-		memcpy(_fetchCulling + 0x152, &_jmpByte, 0x01);
+		auto _fetchCulling3D = SignatureScan<char*>("\x48\x8B\xC4\x48\x89\x58\x18\x48\x89\x70\x20\x55\x57\x41\x54\x41", "xxxxxxxxxxxxxxxx");
+		auto _fetchCulling2D = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\xFA\xE8", "xxxxxxxxxxxxxxxxxxx");
+
+		memcpy(_fetchCulling3D + 0x11D, &_jmpByte, 0x01);
+		memcpy(_fetchCulling3D + 0x12B, &_jmpByte, 0x01);
+		memcpy(_fetchCulling3D + 0x133, &_jmpByte, 0x01);
+		memcpy(_fetchCulling3D + 0x141, &_jmpByte, 0x01);
+		memcpy(_fetchCulling3D + 0x149, &_jmpByte, 0x01);
+		memcpy(_fetchCulling3D + 0x152, &_jmpByte, 0x01);
+
+		memcpy(_fetchCulling2D + 0x06C, &_falseByte, 0x01);
 	}
 
 	__declspec(dllexport) void OnFrame()
