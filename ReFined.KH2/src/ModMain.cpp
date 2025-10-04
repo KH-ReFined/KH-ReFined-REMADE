@@ -307,6 +307,7 @@ extern "C"
 		ReFined::Critical::AspectCorrection();
 
 		ReFined::Continuous::DiscordRPC();
+		ReFined::Continuous::Autoattack();
 		ReFined::Continuous::FixSummonBGM();
 		ReFined::Continuous::AutosaveLogic();
 		ReFined::Continuous::HandleSaveGlow();

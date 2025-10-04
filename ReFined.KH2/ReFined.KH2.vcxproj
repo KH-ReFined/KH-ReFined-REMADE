@@ -47,6 +47,7 @@
     <ClInclude Include="include\kingdom\cache_buff.h" />
     <ClInclude Include="include\kingdom\cmconfig.h" />
     <ClInclude Include="include\kingdom\command_draw.h" />
+    <ClInclude Include="include\kingdom\command_elem.h" />
     <ClInclude Include="include\kingdom\converter.h" />
     <ClInclude Include="include\kingdom\egs.h" />
     <ClInclude Include="include\kingdom\event.h" />
@@ -99,6 +100,7 @@
     <ClCompile Include="src\kingdom\cache_buff.cpp" />
     <ClCompile Include="src\kingdom\cmconfig.cpp" />
     <ClCompile Include="src\kingdom\command_draw.cpp" />
+    <ClCompile Include="src\kingdom\command_elem.cpp" />
     <ClCompile Include="src\kingdom\converter.cpp" />
     <ClCompile Include="src\kingdom\egs.cpp" />
     <ClCompile Include="src\kingdom\event.cpp" />

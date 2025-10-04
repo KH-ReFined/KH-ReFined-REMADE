@@ -21,10 +21,12 @@
 #include "world.h"
 #include "discord.h"
 #include "command_draw.h"
+#include "command_elem.h"
 
 #include "Continuous.h"
 #include "Critical.h"
 #include "SigScan.h"
+#include <hardpad.h>
 
 bool IS_SHOWN = false;
 bool SYSTEM_LOADED = false;
@@ -458,7 +460,7 @@ void ReFined::Continuous::DiscordRPC()
 
 void ReFined::Continuous::HandleSaveGlow()
 {
-	if (*reinterpret_cast<const uint16_t*>(YS::COMMAND_DRAW::ReactionID) == 0x0037 && *YS::AREA::IsInMap)
+	if (*reinterpret_cast<const uint16_t*>(YS::COMMAND_ELEM::ReactionID) == 0x0037 && *YS::AREA::IsInMap)
 	{
 		auto _statsSlot1 = YS::MEMBER_TABLE::MemberStatsAnchor + 0xC30C;
 		auto _statsSlot2 = YS::MEMBER_TABLE::MemberStatsAnchor + 0xC30C - 0x278;
@@ -482,5 +484,41 @@ void ReFined::Continuous::HandleSaveGlow()
 			SAVE_CHECK = 0xEB;
 
 		memcpy(SAVE_OFFSET + 0x25B, &SAVE_CHECK, 0x01);
+	}
+}
+
+void ReFined::Continuous::Autoattack()
+{
+	auto _pointAction = CalculatePointer(YS::COMMAND_ELEM::CommandElem, { 0x0A });
+
+	auto _currAction = *reinterpret_cast<const uint32_t*>(_pointAction);
+	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
+	auto _currChildMenu = *reinterpret_cast<const uint64_t*>(YS::COMMAND_DRAW::pint_commandmenu + 0x08);
+
+	auto _confirmConfig = *(IS_STEAM ? PC::STEAM::MareConfig + 0x1E : PC::EGS::MareConfig + 0x1E);
+	auto _confirmButton = _confirmConfig == 0x00 ? 0x4000 : 0x2000;
+
+	if (!*YS::TITLE::IsTitle && *YS::AREA::BattleStatus != 0x00 && _commandPointer != 0x00)
+	{
+		auto _currCommand = *reinterpret_cast<const uint8_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x74 }));
+		auto _mainMenuType = *reinterpret_cast<const uint8_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x00 }));
+		auto _firstCommand = *reinterpret_cast<const uint16_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x16 }));
+
+		bool _isActionGood = _currChildMenu == 0x00 && _currCommand == 0x00;
+		bool _isCommandGood = (_firstCommand == 0x0001 || _firstCommand == 0x016D || _firstCommand == 0x0088) && (_mainMenuType == 0x00 || _mainMenuType == 0x06);
+
+		auto _fetchButtons = *YS::HARDPAD::Input;
+
+		if (_isCommandGood && _isActionGood && (_fetchButtons & _confirmButton) == _confirmButton && _currAction == 0x00)
+		{
+			_currAction = 0x01;
+			memcpy(const_cast<char*>(_pointAction), &_currAction, 0x04);
+		}
+
+		else if (_currAction == 0x01)
+		{
+			_currAction = 0x00;
+			memcpy(const_cast<char*>(_pointAction), &_currAction, 0x04);
+		}
 	}
 }

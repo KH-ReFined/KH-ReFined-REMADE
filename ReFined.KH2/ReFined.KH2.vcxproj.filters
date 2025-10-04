@@ -201,6 +201,9 @@
     <ClInclude Include="include\kingdom\command_draw.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
+    <ClInclude Include="include\kingdom\command_elem.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\discord\activity_manager.cpp">
@@ -348,6 +351,9 @@
       <Filter>Source Files\refined_classes</Filter>
     </ClCompile>
     <ClCompile Include="src\kingdom\command_draw.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\command_elem.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>
