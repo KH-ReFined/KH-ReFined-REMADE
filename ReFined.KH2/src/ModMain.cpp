@@ -309,6 +309,7 @@ extern "C"
 		ReFined::Continuous::DiscordRPC();
 		ReFined::Continuous::FixSummonBGM();
 		ReFined::Continuous::AutosaveLogic();
+		ReFined::Continuous::HandleSaveGlow();
 		ReFined::Continuous::EnforcePrompts();
 		ReFined::Continuous::ActivateWarpGOA();
 		ReFined::Continuous::HandleFrameLimiter();

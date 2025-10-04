@@ -38,6 +38,7 @@ vector<uint32_t> CHECKSUM_TABLE;
 vector<char> LIMITER_FUNCTION;
 
 uint8_t IS_STEAM = FindModule("steam_api64.dll");
+uint8_t SAVE_CHECK = 0xEB;
 
 discord::Core* Discord;
 
@@ -50,6 +51,8 @@ vector<string> TEXT_FORM;
 
 bool IS_MIRAGE;
 bool RPC_ENABLED = true;
+
+char* SAVE_OFFSET = SignatureScan<char*>("\x40\x55\x53\x48\x8D\x6C\x24\xB1\x48\x81\xEC\xC8\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x45\x3F\x48\x8B\xD9\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxx????");
 
 uint8_t* COMMAND_TYPE = ResolveRelativeAddress<uint8_t*>("\x48\x83\xEC\x28\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x05\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\x48\x83\xC4\x28\xE9\x00\x00\x00\x00\xCC\xCC\x48\x8D\x05\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\xC3", "xxxxxxx????x????xxx????xxx????xxx????xxxxx????xxxxx????xxx????x", 0x1A);
 
@@ -75,7 +78,7 @@ void ReFined::Continuous::AutosaveLogic()
 		{
 			auto r = x << 24;
 
-			for (auto j = 0; j < 0xff; j++)
+			for (auto j = 0; j < 0xFF; j++)
 				r = r << 1 ^ (r < 0 ? 0x4C11DB7 : 0);
 
 			CHECKSUM_TABLE.push_back(r);
@@ -450,5 +453,34 @@ void ReFined::Continuous::DiscordRPC()
 
 		Discord->ActivityManager().UpdateActivity(RICH_PRESENCE, [&_resultant](discord::Result v) { _resultant = (int)v; });
 		Discord->RunCallbacks();
+	}
+}
+
+void ReFined::Continuous::HandleSaveGlow()
+{
+	if (*reinterpret_cast<const uint16_t*>(YS::COMMAND_DRAW::ReactionID) == 0x0037 && *YS::AREA::IsInMap)
+	{
+		auto _statsSlot1 = YS::MEMBER_TABLE::MemberStatsAnchor + 0xC30C;
+		auto _statsSlot2 = YS::MEMBER_TABLE::MemberStatsAnchor + 0xC30C - 0x278;
+		auto _statsSlot3 = YS::MEMBER_TABLE::MemberStatsAnchor + 0xC30C - 0x4F0;
+
+		uint8_t _healthChecks = 0x00;
+		uint8_t _magicChecks = 0x00;
+
+		_healthChecks += *_statsSlot3 == 0x00 ? 0x00 : (*_statsSlot3 != *(_statsSlot3 - 0x04) ? 0x01 : 0x00);
+		_healthChecks += *_statsSlot2 == 0x00 ? 0x00 : (*_statsSlot2 != *(_statsSlot2 - 0x04) ? 0x01 : 0x00);
+		_healthChecks += *_statsSlot1 == 0x00 ? 0x00 : (*_statsSlot1 != *(_statsSlot1 - 0x04) ? 0x01 : 0x00);
+
+		_magicChecks += *_statsSlot3 == 0x00 ? 0x00 : (*(_statsSlot3 + 0x180) != *(_statsSlot3 + 0x180 - 0x04) ? 0x01 : 0x00);
+		_magicChecks += *_statsSlot2 == 0x00 ? 0x00 : (*(_statsSlot2 + 0x180) != *(_statsSlot2 + 0x180 - 0x04) ? 0x01 : 0x00);
+		_magicChecks += *_statsSlot1 == 0x00 ? 0x00 : (*(_statsSlot1 + 0x180) != *(_statsSlot1 + 0x180 - 0x04) ? 0x01 : 0x00);
+
+		if (_healthChecks > 0x00 || _magicChecks > 0x00)
+			SAVE_CHECK = 0x75;
+
+		else if (SAVE_CHECK == 0x75)
+			SAVE_CHECK = 0xEB;
+
+		memcpy(SAVE_OFFSET + 0x25B, &SAVE_CHECK, 0x01);
 	}
 }

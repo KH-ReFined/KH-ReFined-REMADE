@@ -11,5 +11,6 @@ namespace ReFined
 			static void DiscordRPC();
 			static void ActivateWarpGOA();
 			static void HandleFrameLimiter();
+			static void HandleSaveGlow();
 	};
 }
