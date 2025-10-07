@@ -498,7 +498,7 @@ void ReFined::Continuous::Autoattack()
 	auto _confirmConfig = *(IS_STEAM ? PC::STEAM::MareConfig + 0x1E : PC::EGS::MareConfig + 0x1E);
 	auto _confirmButton = _confirmConfig == 0x00 ? 0x4000 : 0x2000;
 
-	if (!*YS::TITLE::IsTitle && *YS::AREA::BattleStatus != 0x00 && _commandPointer != 0x00)
+	if (!*YS::TITLE::IsTitle && _commandPointer != 0x00)
 	{
 		auto _currCommand = *reinterpret_cast<const uint8_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x74 }));
 		auto _mainMenuType = *reinterpret_cast<const uint8_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x00 }));
@@ -509,7 +509,7 @@ void ReFined::Continuous::Autoattack()
 
 		auto _fetchButtons = *YS::HARDPAD::Input;
 
-		if (_isCommandGood && _isActionGood && (_fetchButtons & _confirmButton) == _confirmButton && _currAction == 0x00)
+		if (*YS::AREA::BattleStatus != 0x00 && _isCommandGood && _isActionGood && (_fetchButtons & _confirmButton) == _confirmButton && _currAction == 0x00)
 		{
 			_currAction = 0x01;
 			memcpy(const_cast<char*>(_pointAction), &_currAction, 0x04);
