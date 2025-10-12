@@ -308,6 +308,7 @@ extern "C"
 
 		ReFined::Continuous::DiscordRPC();
 		ReFined::Continuous::Autoattack();
+		ReFined::Continuous::HandleShake();
 		ReFined::Continuous::FixSummonBGM();
 		ReFined::Continuous::AutosaveLogic();
 		ReFined::Continuous::HandleSaveGlow();

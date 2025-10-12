@@ -164,6 +164,16 @@ T ResolveRelativeAddress(const char* pattern, const char* mask, size_t callOffse
     return 0x00;
 }
 
+template <typename T>
+T ResolveRelativeAddress(const char* addr, size_t callOffset = 0)
+{
+    int32_t relOffset;
+    std::memcpy(&relOffset, addr + callOffset, sizeof(relOffset));
+
+    return reinterpret_cast<T>(const_cast<char*>(addr) + relOffset + callOffset + 0x04);
+}
+
+
 inline const char* CalculatePointer(uint64_t Input, initializer_list<uint32_t>Offsets)
 {
     uint64_t _mainFetch = *reinterpret_cast<const uint64_t*>(Input);

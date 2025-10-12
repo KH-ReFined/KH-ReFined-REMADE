@@ -630,7 +630,6 @@ void ReFined::Critical::HandleConfiguration()
 			ReFined::Critical::CONTROLLER_MODE = (_configBitwise & 0x2000) == 0x2000;
 			ReFined::Critical::SAVE_MODE = (_configBitwise & 0x0004) == 0x0004 ? 0x00 : ((_configBitwise & 0x0002) == 0x0002 ? 0x01 : 0x02);
 
-
 			bool _isQuadratum = *(YS::AREA::SaveData + 0x41A7);
 			const char* _fileName = _isQuadratum ? "field2d/%s/qd0command.2dd" : "field2d/%s/zz0command.2dd";
 

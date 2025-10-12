@@ -63,6 +63,7 @@
     <ClInclude Include="include\kingdom\menu.h" />
     <ClInclude Include="include\kingdom\message.h" />
     <ClInclude Include="include\kingdom\pax.h" />
+    <ClInclude Include="include\kingdom\shake.h" />
     <ClInclude Include="include\kingdom\softreset.h" />
     <ClInclude Include="include\kingdom\sora.h" />
     <ClInclude Include="include\kingdom\sound.h" />
@@ -115,6 +116,7 @@
     <ClCompile Include="src\kingdom\menu.cpp" />
     <ClCompile Include="src\kingdom\message.cpp" />
     <ClCompile Include="src\kingdom\pax.cpp" />
+    <ClCompile Include="src\kingdom\shake.cpp" />
     <ClCompile Include="src\kingdom\softreset.cpp" />
     <ClCompile Include="src\kingdom\sora.cpp" />
     <ClCompile Include="src\kingdom\sound.cpp" />
