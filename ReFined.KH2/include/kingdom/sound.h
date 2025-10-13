@@ -13,5 +13,8 @@ namespace YS
 
 		using KillBGM_t = void(*)(uint32_t mode);
 		static KillBGM_t KillBGM;
+
+		using PlaySFX_t = void(*)(uint32_t soundID);
+		static PlaySFX_t PlaySFX;
 	};
 }
