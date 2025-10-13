@@ -10,6 +10,9 @@ namespace YS
 		using PauseExecTask_t = void(*)(const char* self);
 		static PauseExecTask_t PauseExecTask;
 
+		using UpdateListShortcut_t = void(*)(uint32_t index);
+		static UpdateListShortcut_t UpdateListShortcut;
+
 		using CampStart_t = void(*)(int type, long param);
 		static CampStart_t CampStart;
 
@@ -24,5 +27,7 @@ namespace YS
 		static uint64_t pint_camp2ld;
 		static uint64_t pint_suboptionselect;
 		static uint64_t pint_dialogbase;
+
+		static uint64_t pint_jiminymenu;
 	};
 }

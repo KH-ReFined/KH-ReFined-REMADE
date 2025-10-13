@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <cctype>
 #include <random>
+#include <algorithm>
 
 #include "information.h"
 #include "area.h"
@@ -25,15 +26,23 @@
 #include "jumpeffect.h"
 #include "command_draw.h"
 #include "sound.h"
+#include "member_table.h"
 
 #include "Demand.h"
 #include "SigScan.h"
-#include <algorithm>
 
 using namespace std;
 
 bool IS_RESETING = false;
 bool ENCOUNTER_ACTIVE = false;
+
+bool SUBMIT_SHORTCUTS = false;
+bool REVERTED_SHORTNAME = false;
+bool DEBOUNCE_SHORTCUT = false;
+
+uint8_t CURRENT_SHORTCUT_SET = 0x80;
+vector<vector<char>> DEFAULT_SHORTCUT_NAMES;
+
 
 // TODO: Config implementation.
 void ReFined::Demand::TriggerReset()
@@ -46,7 +55,6 @@ void ReFined::Demand::TriggerReset()
 	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
 
 	bool _canReset = _commandPointer != 0x00 && *YS::AREA::IsInMap && !*YS::TITLE::IsTitle && !*YS::MENU::IsMenu;
-
 
 	// If the buttons are pushed, a reset can happen and it isn't happening:
 	if (_fetchButtons == _seekButtons && _canReset && !IS_RESETING)
@@ -119,4 +127,141 @@ void ReFined::Demand::EncounterPlus()
 
 	else if (*YS::AREA::IsInMap && ENCOUNTER_ACTIVE)
 		ENCOUNTER_ACTIVE = false;
+}
+
+void ReFined::Demand::ShortcutSets()
+{
+	if (DEFAULT_SHORTCUT_NAMES.size() == 0x00)
+	{
+		auto _shortString = YS::MESSAGE::DecodeKHSCII(YS::MESSAGE::GetData(0x051F));
+
+		replace(_shortString.begin(), _shortString.end(), 'X', 'A');
+		DEFAULT_SHORTCUT_NAMES.push_back(YS::MESSAGE::EncodeKHSCII(_shortString));
+
+		replace(_shortString.begin(), _shortString.end(), 'A', 'B');
+		DEFAULT_SHORTCUT_NAMES.push_back(YS::MESSAGE::EncodeKHSCII(_shortString));
+
+		replace(_shortString.begin(), _shortString.end(), 'B', 'C');
+		DEFAULT_SHORTCUT_NAMES.push_back(YS::MESSAGE::EncodeKHSCII(_shortString));
+	}
+
+	if (!*YS::AREA::IsInMap && CURRENT_SHORTCUT_SET != *(YS::AREA::SaveData + 0xE600))
+		CURRENT_SHORTCUT_SET = *(YS::AREA::SaveData + 0xE600);
+
+	bool IS_CUSTOMIZE = *YS::MENU::IsMenu && *YS::MENU::MenuType == 0x08 && *YS::MENU::SubMenuType == 0x19 && CalculatePointer(YS::MENU::pint_jiminymenu, { 0x00 }) == 0x00;
+	bool IS_SHORTEDIT = *YS::MENU::IsMenu && *YS::MENU::MenuType == 0x08 && (*YS::MENU::SubMenuType == 0x1A || *YS::MENU::SubMenuType == 0x1D || *YS::MENU::SubMenuType == 0x1E || *YS::MENU::SubMenuType == 0x1F) && CalculatePointer(YS::MENU::pint_jiminymenu, { 0x00 }) == 0x00;
+
+	bool IS_ROXAS = (*reinterpret_cast<const uint16_t*>(YS::MEMBER_TABLE::MemberTable) == 0x5A || *reinterpret_cast<const uint16_t*>(YS::MEMBER_TABLE::MemberTable) == 0x0323);
+
+	auto _helpBitwise = *reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x4270);
+
+	if ((_helpBitwise & 0x0600) == 0x0600)
+	{
+		_helpBitwise += 0x0F00;
+		memcpy(YS::AREA::SaveData + 0x4270, &_helpBitwise, 0x02);
+	}
+
+	if (!*YS::TITLE::IsTitle && !IS_ROXAS)
+	{
+		if (IS_SHORTEDIT && !SUBMIT_SHORTCUTS)
+			SUBMIT_SHORTCUTS = true;
+
+		else if (!IS_SHORTEDIT && SUBMIT_SHORTCUTS)
+		{
+			memcpy(YS::AREA::SaveData + 0xE700 + (0x08 * CURRENT_SHORTCUT_SET), YS::AREA::SaveData + 0x36F8, 0x08);
+			SUBMIT_SHORTCUTS = false;
+		}
+
+		auto _currentTextPtr = YS::MESSAGE::GetData(0x051F);
+		auto _currentTextSize = YS::MESSAGE::GetSize(_currentTextPtr);
+
+		vector<char> _currentText(_currentTextSize + 0x01);
+		memcpy(_currentText.data(), _currentTextPtr, _currentTextSize + 0x01);
+
+		if (!IS_CUSTOMIZE && !IS_SHORTEDIT && !REVERTED_SHORTNAME)
+		{
+			auto _soraText = YS::MESSAGE::GetData(0x572E);
+			auto _soraSize = YS::MESSAGE::GetSize(_soraText);
+
+			memcpy(const_cast<char*>(_currentTextPtr), _soraText, _soraSize + 0x01);
+			REVERTED_SHORTNAME = true;
+		}
+
+		else if ((IS_CUSTOMIZE || IS_SHORTEDIT) && (!equal(_currentText.begin(), _currentText.end(), DEFAULT_SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].begin()) || REVERTED_SHORTNAME))
+		{
+			memcpy(const_cast<char*>(_currentTextPtr), DEFAULT_SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].data(), DEFAULT_SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].size());
+			REVERTED_SHORTNAME = false;
+		}
+
+		bool IS_INPUT_MENU = (*YS::HARDPAD::Input & 0x0400) == 0x0400 || (*YS::HARDPAD::Input & 0x0800) == 0x0800;
+		bool IS_INPUT_GAME = (*YS::HARDPAD::Input & 0x0010) == 0x0010 || (*YS::HARDPAD::Input & 0x0040) == 0x0040;
+
+		auto _commandType = CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x00 });
+		auto _subOptionSelect = CalculatePointer(YS::MENU::pint_suboptionselect, { 0x00 });
+
+		if (_commandType != nullptr)
+		{
+			if (((IS_CUSTOMIZE || IS_SHORTEDIT) && !IS_INPUT_MENU) || (*_commandType == 0x05 && !IS_INPUT_GAME))
+				DEBOUNCE_SHORTCUT = false;
+
+			if (!DEBOUNCE_SHORTCUT)
+			{
+				if (*_commandType == 0x05)
+				{
+					auto _flowDirection = (*YS::HARDPAD::Input & 0x0010) == 0x0010 ? -1 : ((*YS::HARDPAD::Input & 0x0040) == 0x0040 ? 1 : 0);
+
+					if (*(YS::AREA::SaveData + 0x3524) != 0x03 && *(YS::AREA::SaveData + 0x3524) != 0x06)
+					{
+						if (_flowDirection != 0x00)
+						{
+							YS::SOUND::PlaySFX(0x14);
+
+							CURRENT_SHORTCUT_SET += _flowDirection;
+							DEBOUNCE_SHORTCUT = true;
+						}
+					}
+
+					else if (_flowDirection != 0x00)
+					{
+						YS::SOUND::PlaySFX(0x05);
+						DEBOUNCE_SHORTCUT = true;
+					}
+				}
+
+				else if (IS_CUSTOMIZE && _subOptionSelect != nullptr)
+				{
+					if (*_subOptionSelect == 0x00)
+					{
+						auto _flowDirection = (*YS::HARDPAD::Input & 0x0400) == 0x0400 ? -1 : ((*YS::HARDPAD::Input & 0x0800) == 0x0800 ? 1 : 0);
+
+						if (_flowDirection != 0x00)
+						{
+							YS::SOUND::PlaySFX(0x02);
+
+							CURRENT_SHORTCUT_SET += _flowDirection;
+							DEBOUNCE_SHORTCUT = true;
+						}
+					}
+				}
+			}
+		}
+		
+		if (CURRENT_SHORTCUT_SET == 0x80)
+			CURRENT_SHORTCUT_SET = *(YS::AREA::SaveData + 0xE600);
+
+		if (CURRENT_SHORTCUT_SET >= 0x81)
+			CURRENT_SHORTCUT_SET = 0x02;
+
+		if (CURRENT_SHORTCUT_SET >= 0x03)
+			CURRENT_SHORTCUT_SET = 0x00;
+
+		if (*YS::AREA::IsInMap && CURRENT_SHORTCUT_SET != *(YS::AREA::SaveData + 0xE600) && DEBOUNCE_SHORTCUT)
+		{
+			memcpy(YS::AREA::SaveData + 0x36F8, YS::AREA::SaveData + 0xE700 + (0x08 * CURRENT_SHORTCUT_SET), 0x08);
+			*(YS::AREA::SaveData + 0xE600) = CURRENT_SHORTCUT_SET;
+
+			if (IS_CUSTOMIZE)
+				YS::MENU::UpdateListShortcut(0x00);
+		}
+	}
 }

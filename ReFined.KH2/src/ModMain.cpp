@@ -293,6 +293,7 @@ extern "C"
 	__declspec(dllexport) void OnFrame()
 	{
 		ReFined::Demand::TriggerReset();
+		ReFined::Demand::ShortcutSets();
 		ReFined::Demand::EncounterPlus();
 
 		ReFined::Critical::HandleCrown();
