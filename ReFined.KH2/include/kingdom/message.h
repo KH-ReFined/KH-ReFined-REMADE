@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <map>
 #include <sstream>
+#include <vector>
 
 using namespace std;
 
@@ -16,6 +17,8 @@ namespace YS
 
 		static GetData_t GetData;
 		static GetSize_t GetSize;
+
+		static char* SizeTable;
 
 		static string DecodeKHSCII(const char* Input);
 		static vector<char> EncodeKHSCII(string Input);

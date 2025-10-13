@@ -2,9 +2,12 @@
 #include "SigScan.h"
 #include <Windows.h>
 #include <regex>
+#include <iomanip> 
 
 YS::MESSAGE::GetData_t YS::MESSAGE::GetData = SignatureScan<YS::MESSAGE::GetData_t>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x50\x45\x33\xF6\x48\x63\xE9\x33\xF6\x48\x8D\x3D\x00\x00\x00\x00\x4C\x8D\x3D\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx????");
 YS::MESSAGE::GetSize_t YS::MESSAGE::GetSize = SignatureScan<YS::MESSAGE::GetSize_t>("\x4C\x8B\xC1\x48\x8B\xD1\x48\x85\xC9\x74\x2E\x4C\x8D\x0D\x00\x00\x00\x00", "xxxxxxxxxxxxxx????");
+
+char* YS::MESSAGE::SizeTable = ResolveRelativeAddress<char*>("\x4C\x8B\xC1\x48\x8B\xD1\x48\x85\xC9\x74\x2E\x4C\x8D\x0D\x00\x00\x00\x00", "xxxxxxxxxxxxxx????", 0x0E);
 
 vector<char> YS::MESSAGE::EncodeKHSCII(string Input)
 {
@@ -13,7 +16,6 @@ vector<char> YS::MESSAGE::EncodeKHSCII(string Input)
     static const map<char, uint8_t> _specialDict = {
         { ' ', 0x01 },
         { '\n', 0x02 },
-        { '-', 0x54 },
         { '!', 0x48 },
         { '?', 0x49 },
         { '%', 0x4A },
@@ -22,6 +24,9 @@ vector<char> YS::MESSAGE::EncodeKHSCII(string Input)
         { ',', 0x50 },
         { ';', 0x51 },
         { ':', 0x52 },
+        { '-', 0x54 },
+        { 'ー', 0x55 },
+        { '~', 0x56 },
         { '\'', 0x57 },
         { '(', 0x5A },
         { ')', 0x5B },
@@ -113,12 +118,12 @@ vector<char> YS::MESSAGE::EncodeKHSCII(string Input)
             if (regex_match(_command, command_regex))
             {
                 string _value = _command.substr(3, 2); // "TT" part
-                uint8_t byte_value = 0;
-                istringstream iss(_value);
-                iss >> hex >> byte_value;
+                uint8_t byte_value = std::stoi(_value, nullptr, 16);
+
                 _outList.push_back(byte_value);
                 _charCount += 6;
             }
+
             else
             {
                 // If not a valid command, treat as unknown character
@@ -151,10 +156,8 @@ string YS::MESSAGE::DecodeKHSCII(const char* Input)
 	{
 		{ 0x01, ' ' },
 		{ 0x02, '\n' },
-		{ 0x54, '-' },
 		{ 0x2C, '-' },
 		{ 0x66, '-' },
-		{ 0x55, 'ー' },
 		{ 0x48, '!' },
 		{ 0x49, '?' },
 		{ 0x4A, '%' },
@@ -163,6 +166,9 @@ string YS::MESSAGE::DecodeKHSCII(const char* Input)
 		{ 0x50, ',' },
 		{ 0x51, ';' },
 		{ 0x52, ':' },
+        { 0x54, '-' },
+        { 0x55, 'ー'},
+        { 0x56, '~' },
 		{ 0x57, '\'' },
 		{ 0x5A, '('},
 		{ 0x5B, ')'},
@@ -245,6 +251,24 @@ string YS::MESSAGE::DecodeKHSCII(const char* Input)
 			_charCount++;
 		}
 
+        else if (_currentChar <= 0x20 && _currentChar >= 0x03)
+        {
+            auto _fetchSize = *(YS::MESSAGE::SizeTable + _currentChar);
+
+            for (int i = 0; i < _fetchSize; i++)
+            {
+                auto _fetchChar = *reinterpret_cast<const uint8_t*>(Input + _charCount + i);
+
+                stringstream _charToHex;
+                _charToHex << "{0x" << std::hex << std::setw(2) << std::setfill('0') << (int)_fetchChar << "}";
+
+                for (auto _chr : _charToHex.str())
+                    _outList.push_back(_chr);
+            }
+
+            _charCount += _fetchSize;
+        }
+
 		else
 		{
 			if (_specialDict.find(_currentChar) != _specialDict.end())
@@ -253,7 +277,7 @@ string YS::MESSAGE::DecodeKHSCII(const char* Input)
 			else
 			{
 				stringstream _charToHex;
-				_charToHex << "{0x" << std::hex << _currentChar << "}";
+				_charToHex << "{0x" << std::hex << std::setw(2) << std::setfill('0') << (int)_currentChar << "}";
 
 				for (auto _chr : _charToHex.str())
 					_outList.push_back(_chr);
