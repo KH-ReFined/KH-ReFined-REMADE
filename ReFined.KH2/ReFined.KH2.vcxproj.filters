@@ -207,6 +207,24 @@
     <ClInclude Include="include\kingdom\shake.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
+    <ClInclude Include="include\kingdom\party.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\friend.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\member.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\objentry.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\weapon_entry.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\weapon.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\discord\activity_manager.cpp">
@@ -360,6 +378,24 @@
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
     <ClCompile Include="src\kingdom\shake.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\party.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\friend.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\member.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\objentry.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\weapon_entry.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\weapon.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>

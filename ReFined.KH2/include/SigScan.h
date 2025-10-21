@@ -174,9 +174,9 @@ T ResolveRelativeAddress(const char* addr, size_t callOffset = 0)
 }
 
 
-inline const char* CalculatePointer(uint64_t Input, initializer_list<uint32_t>Offsets)
+inline char* CalculatePointer(uint64_t Input, initializer_list<int32_t>Offsets)
 {
-    uint64_t _mainFetch = *reinterpret_cast<const uint64_t*>(Input);
+    uint64_t _mainFetch = *reinterpret_cast<uint64_t*>(Input);
 
     if (_mainFetch == 0x00)
         return 0x00;
@@ -187,12 +187,12 @@ inline const char* CalculatePointer(uint64_t Input, initializer_list<uint32_t>Of
 
         if (i != Offsets.size() - 1)
         {
-            const char* _ptrSub = reinterpret_cast<const char*>(_mainFetch) + _currOffset;
-            _mainFetch = *reinterpret_cast<const uint64_t*>(_ptrSub);
+            char* _ptrSub = reinterpret_cast<char*>(_mainFetch) + _currOffset;
+            _mainFetch = *reinterpret_cast<uint64_t*>(_ptrSub);
         }
 
         else
-            return reinterpret_cast<const char*>(_mainFetch) + _currOffset;
+            return reinterpret_cast<char*>(_mainFetch) + _currOffset;
     }
 }
 
