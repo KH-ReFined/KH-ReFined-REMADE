@@ -63,47 +63,66 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 
 	char* _wpnLoaded = nullptr;
 
+	// For every possible slot that *may* or *may not* contain a party member;
 	for (int i = 0; i <= 3; i++)
 	{
-		_charPtr = i == 0x00 ? CalculatePointer(YS::SORA::pint_sora, { 0x00 }) : 
-							   CalculatePointer(YS::FRIEND::pint_friend, { 0x08 * (i - 1)});
+		// Fetch the pointer in which the party member is initialized.
+		_charPtr = i == 0x00 ? *reinterpret_cast<char**>(YS::SORA::pint_sora) : 
+							   *reinterpret_cast<char**>(YS::FRIEND::pint_friend + 0x08 * (i - 1));
 
+		// If the pointer does not exist, kindly continue.
 		if (_charPtr == nullptr)
 			continue;
 
+		// Fetch the WEAPON_PART variable.
 		_wpnPart = *reinterpret_cast<int8_t*>(PC::CONVERTER::INT_TO_LONG_ADDRESS(*reinterpret_cast<uint32_t*>(_charPtr + 0x08)) + 0x4C);
 
-		if (_charPtr != nullptr && _wpnPart == part)
+		// If the WEAPON_PART parsed matches the WEAPON_PART requested, we have our target party member.
+		if (_wpnPart == part)
 			break;
+
+		// Otherwise, if we are at the end of the loop, and the part requested is 0x01, give out Sora's pointer.
+		// I have no clue why this is necessary or if it even is. But it was in the ASM, so it is here.
 
 		if (i == 0x03 && part == 0x01)
 			_charPtr = CalculatePointer(YS::SORA::pint_sora, { 0x00 });
 
+		// Else, break out. We will parse the character we need another way.
 		else if (i == 0x03)
 			break;
 	}
 
+	// If we have a hit on the party member;
 	if (_charPtr != nullptr)
 	{
+		// Fetch the pointers for the weapon and its function space.
+
 		auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * _wpnHand + 0x0D60);
 		int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
 
 		uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
 		uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
 
+		// Fetch the priority and see if it should be hidden or not.
 		_wpnPriority = *reinterpret_cast<uint32_t*>(_weaponPtr + 0x0C0C);
 		_wpnHide = (*reinterpret_cast<uint64_t*>(_weaponPtr + 0x124) & 0x180) != 0x00 || (*reinterpret_cast<uint64_t*>(_weaponPtr + 0x6C8) & 0x44) == 0x00 || (*reinterpret_cast<uint64_t*>(_weaponPtr + 0x120) & 0x400) != 0x00;
+
+		// Fetch the weapon bank, set to -1 if it is not defined or otherwise can't be accessed.
 
 		auto _wpnBankAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*reinterpret_cast<uint32_t*>(_weaponPtr + 0x0BB0));
 
 		if (_wpnBankAddr != 0x00)
-			_wpnBank = *(uint16_t*)_wpnBankAddr;
+			_wpnBank = *reinterpret_cast<uint16_t*>(_wpnBankAddr);
 		
 		else
 			_wpnBank = 0xFFFF;
 
-		*reinterpret_cast<uint64_t*>(_weaponPtr + 0x124) |= 0x700;
-		reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x48))(_weaponAddr, _weaponInt);
+		// Force-Destroy the current keyblade.
+
+		*reinterpret_cast<uint64_t*>(_weaponPtr + 0x124) |= 0x700; // Hides the Keyblade.
+		reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x48))(_weaponAddr, _weaponInt); // Compresses the VIF packages(?).
+
+		// This essentially reimplements YS::OBJ::destroy(). Why? Why not.
 
 		if ((*reinterpret_cast<uint64_t*>(_weaponPtr + 0x9B8) & 0x40) == 0x00)
 		{
@@ -111,47 +130,64 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 			*reinterpret_cast<uint64_t*>(_weaponPtr + 0x9B8) |= 0x40;
 		}
 
+		// Erase the weapon pointer.
 		*reinterpret_cast<uint64_t*>(_charPtr + 0x08 * _wpnHand + 0x0D60) = 0x00;
 
+		// Parse the current weapon part from the parsed character.
 		_wpnPart = *reinterpret_cast<int8_t*>(PC::CONVERTER::INT_TO_LONG_ADDRESS(*reinterpret_cast<uint32_t*>(_charPtr + 0x08)) + 0x4E);
 
+		// Check if the weapon targeted is Sora's MAIN weapon;
 		if (_wpnPart != 0x35 && !_wpnHand && (*reinterpret_cast<uint8_t*>(_charPtr + 0x06CB) & 0x01) != 0x00)
 		{
+			// Parse Sora's current costume from the objentry, then parse the WEAPON_PART accordingly.
 			auto _object = YS::SORA::GetEntryID(0x00);
 			_wpnPart = *reinterpret_cast<uint16_t*>(YS::OBJENTRY::Get(_object) + 0x4E);
 		}
 	}
 
+	// Otherwise;
 	else
 	{
+		// Fetch the current object from WEAPON_PART and its priority.
 		auto _object = YS::MEMBER::PartToEntryID(part);
 		auto _priority = YS::OBJENTRY::GetFriendPriority(_object);
 
+		// If the priority is larger than 0x096A;
 		if (_priority > 0x096A)
 		{
+			// If it is *specifically* 0x0974, we return as it is not a correct parse.
 			if (_priority != 0x0974)
 				return;
 
+			// Otherwise, Weapon Bank is 0x06.
 			_wpnBank = 0x06;
 		}
 
+		// Otherwise;
 		else
 		{
+			// If it is *smaller* than 0x0969, we return as it is not a correct parse.
 			if (_priority <= 0x0969)
 				return;
 
+			// Otherwise, Weapon Bank is 0x05.
 			_wpnBank = 0x05;
 		}
 
+		// Apply the WEAPON_PART and Priority accordingly. A Party member's priority is always their own + 1.
 		_wpnPriority = _priority + 1;
 		_wpnPart = *reinterpret_cast<uint16_t*>(YS::OBJENTRY::Get(_object) + 0x4E);
 	}
 	
-	reinterpret_cast<void(*)(int)>(moduleInfo.startAddr + 0x39D010)(_wpnPriority);
+	// Destroy all files with the given priority from the CACHE_BUFF.
+	YS::CACHE_BUFF::DestroyPriority(_wpnPriority);
+
+	// Request reading the files necessary for the current weapon. SINCE this is not a synchronous function, nor can it be, we will have to have an update function running.
+	// Now I *can* use Task Managers within the game and their thread management. But do I want to? No. No I do not.
+	// And before you ask, all C/C++ threads either block execution or crash Panacea.
 	YS::OBJENTRY::ReadRequestWeapon(_wpnPart, _wpnHand, YS::WEAPON_ENTRY::Get(_wpnPart, _wpnItem), _wpnPriority, _wpnBank);
 
+	// Flush the CACHE-BUFF to denote changes and then immediately set what character we worked on for the next function to take over.
 	reinterpret_cast<void(*)(char*)>(moduleInfo.startAddr + 0x39D460)(nullptr);
 	_wpnUser = _charPtr;
-
-
 }
