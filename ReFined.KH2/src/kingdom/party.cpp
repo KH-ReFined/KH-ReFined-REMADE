@@ -8,47 +8,14 @@
 #include "objentry.h"
 #include "cache_buff.h"
 #include "file.h"
+#include "pax.h"
 
+#include <thread>
 #include <cassert>
 
 YS::PARTY::SetWeapon_t YS::PARTY::SetWeapon = SignatureScan<YS::PARTY::SetWeapon_t>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x30\x8B\x81\xC8\x06\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
-char* _wpnUser = nullptr;
-char* _wpnCache = nullptr;
-
-int _wpnPart = 0x00;
-bool _wpnHand = false;
-bool _wpnHide = false;
-uint16_t _wpnItem = 0x00;
-
-void YS::PARTY::WeaponUpdate()
-{
-	if (_wpnUser != nullptr)
-	{
-		auto _checkFlush = reinterpret_cast<bool(*)()>(moduleInfo.startAddr + 0x39DCC0)();
-
-		if (!_checkFlush)
-		{
-			auto _wpnEntry = YS::WEAPON_ENTRY::Get(_wpnPart, _wpnItem);
-			YS::PARTY::SetWeapon(_wpnUser, _wpnEntry, _wpnHand);
-
-			auto _weaponPtr = *reinterpret_cast<char**>(_wpnUser + 0x08 * _wpnHand + 0x0D60);
-			int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
-
-			uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
-			uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
-
-			if (!_wpnHide)
-				reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
-
-			_wpnUser = nullptr;
-
-			_wpnPart = 0x00;
-			_wpnItem = 0x00;
-			_wpnHand = false;
-		}
-	}
-}
+											 
+char* KEYBLADE_PAX = ResolveRelativeAddress<char*>("\x48\x8B\xD1\x4C\x8D\x05\x00\x00\x00\x00\x4C\x8D\x0D\x00\x00\x00\x00\x49\x8B\x00\x48\x85\xC0\x74\x18\x0F\x1F\x80\x00\x00\x00\x00\x48\x39\x10\x74\x1B\x48\x8B\x48\x20\x48\x8B\xC1\x48\x85\xC9", "xxxxxx????xxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 0x10A);
 
 void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 {
@@ -56,12 +23,10 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	bool is_hide = false;
 
 	int _wpnBank = 0;
+	int _wpnPart = 0;
 	int _wpnPriority = 0;
 
-	_wpnHand = hand_secondary;
-	_wpnItem = item;
-
-	char* _wpnLoaded = nullptr;
+	bool _wpnHide = false;
 
 	// For every possible slot that *may* or *may not* contain a party member;
 	for (int i = 0; i <= 3; i++)
@@ -85,7 +50,7 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 		// I have no clue why this is necessary or if it even is. But it was in the ASM, so it is here.
 
 		if (i == 0x03 && part == 0x01)
-			_charPtr = CalculatePointer(YS::SORA::pint_sora, { 0x00 });
+			_charPtr = *reinterpret_cast<char**>(YS::SORA::pint_sora);
 
 		// Else, break out. We will parse the character we need another way.
 		else if (i == 0x03)
@@ -97,7 +62,7 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	{
 		// Fetch the pointers for the weapon and its function space.
 
-		auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * _wpnHand + 0x0D60);
+		auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * hand_secondary + 0x0D60);
 		int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
 
 		uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
@@ -131,13 +96,13 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 		}
 
 		// Erase the weapon pointer.
-		*reinterpret_cast<uint64_t*>(_charPtr + 0x08 * _wpnHand + 0x0D60) = 0x00;
+		*reinterpret_cast<uint64_t*>(_charPtr + 0x08 * hand_secondary + 0x0D60) = 0x00;
 
 		// Parse the current weapon part from the parsed character.
 		_wpnPart = *reinterpret_cast<int8_t*>(PC::CONVERTER::INT_TO_LONG_ADDRESS(*reinterpret_cast<uint32_t*>(_charPtr + 0x08)) + 0x4E);
 
 		// Check if the weapon targeted is Sora's MAIN weapon;
-		if (_wpnPart != 0x35 && !_wpnHand && (*reinterpret_cast<uint8_t*>(_charPtr + 0x06CB) & 0x01) != 0x00)
+		if (_wpnPart != 0x35 && !hand_secondary && (*reinterpret_cast<uint8_t*>(_charPtr + 0x06CB) & 0x01) != 0x00)
 		{
 			// Parse Sora's current costume from the objentry, then parse the WEAPON_PART accordingly.
 			auto _object = YS::SORA::GetEntryID(0x00);
@@ -185,9 +150,41 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	// Request reading the files necessary for the current weapon. SINCE this is not a synchronous function, nor can it be, we will have to have an update function running.
 	// Now I *can* use Task Managers within the game and their thread management. But do I want to? No. No I do not.
 	// And before you ask, all C/C++ threads either block execution or crash Panacea.
-	YS::OBJENTRY::ReadRequestWeapon(_wpnPart, _wpnHand, YS::WEAPON_ENTRY::Get(_wpnPart, _wpnItem), _wpnPriority, _wpnBank);
+	YS::OBJENTRY::ReadRequestWeapon(_wpnPart, hand_secondary, YS::WEAPON_ENTRY::Get(_wpnPart, item), _wpnPriority, _wpnBank);
 
-	// Flush the CACHE-BUFF to denote changes and then immediately set what character we worked on for the next function to take over.
-	reinterpret_cast<void(*)(char*)>(moduleInfo.startAddr + 0x39D460)(nullptr);
-	_wpnUser = _charPtr;
+	// Flush the CACHE_BUFF to denote changes.
+	YS::CACHE_BUFF::Flush(nullptr);
+
+	// immediately launch up a thread to handle during-after flush cycle and detach it.
+	thread _flushThread([item, hand_secondary, _wpnPart, _wpnHide, _charPtr]
+		{
+			// Do nothing while the flush is still going on.
+			while (YS::CACHE_BUFF::IsFlushing()) {};
+
+			// Get the targer weapon's objentry and initialize swap.
+			auto _wpnEntry = YS::WEAPON_ENTRY::Get(_wpnPart, item);
+			YS::PARTY::SetWeapon(_charPtr, _wpnEntry, hand_secondary);
+
+			// Fetch the necessary pointers.
+			auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * hand_secondary + 0x0D60);
+			int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
+
+			uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
+			uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
+
+			// If the weapon needs to be shown, set the parameter.
+			if (!_wpnHide)
+			{
+				reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
+
+				if (_wpnPart <= 0x02)
+				{
+					auto _targetPAX = CalculatePointer(reinterpret_cast<uint64_t>(KEYBLADE_PAX), { 0x5B0 + 0x08 * hand_secondary, 0x00 });
+					ryj::PAX::Start(_targetPAX, 0x00, 0x01, 0x00, 0x00);
+				}
+			}
+		}
+	);
+
+	_flushThread.detach();
 }

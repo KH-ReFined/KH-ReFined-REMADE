@@ -16,5 +16,8 @@ namespace YS
 
 		using Flush_t = void(*)(char* task);
 		static Flush_t Flush;
+
+		using IsFlushing_t = bool(*)();
+		static IsFlushing_t IsFlushing;
 	};
 }

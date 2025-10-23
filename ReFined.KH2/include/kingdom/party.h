@@ -13,7 +13,6 @@ namespace YS
 		static SetWeapon_t SetWeapon;
 
 		// In all honesty, reimplementing this seemed like the far more stable option.
-		static void WeaponUpdate();
 		static void ChangeWeapon(int part, bool hand_secondary, int item);
 	};
 }
