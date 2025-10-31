@@ -516,9 +516,10 @@ void ReFined::Continuous::Autoattack()
 		auto _currCommand = *reinterpret_cast<const uint8_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x74 }));
 		auto _mainMenuType = *reinterpret_cast<const uint8_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x00 }));
 		auto _firstCommand = *reinterpret_cast<const uint16_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x16 }));
+		auto _commandFlag = *reinterpret_cast<const uint8_t*>(CalculatePointer(YS::COMMAND_DRAW::pint_commandmenu, { 0x19 }));
 
 		bool _isActionGood = _currChildMenu == 0x00 && _currCommand == 0x00;
-		bool _isCommandGood = (_firstCommand == 0x0001 || _firstCommand == 0x016D || _firstCommand == 0x0088) && (_mainMenuType == 0x00 || _mainMenuType == 0x06);
+		bool _isCommandGood = (_firstCommand == 0x0001 || _firstCommand == 0x016D || _firstCommand == 0x0088) && (_commandFlag == 0x00) && (_mainMenuType == 0x00 || _mainMenuType == 0x06);
 
 		auto _fetchButtons = *YS::HARDPAD::Input;
 
