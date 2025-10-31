@@ -147,11 +147,28 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	// Destroy all files with the given priority from the CACHE_BUFF.
 	YS::CACHE_BUFF::DestroyPriority(_wpnPriority);
 
+	auto _fetchWeaponID = YS::WEAPON_ENTRY::Get(_wpnPart, item);
+
 	// Request reading the files necessary for the current weapon. SINCE this is not a synchronous function, nor can it be, we will have to have an update function running.
 	// Now I *can* use Task Managers within the game and their thread management. But do I want to? No. No I do not.
 	// And before you ask, all C/C++ threads either block execution or crash Panacea.
-	YS::OBJENTRY::ReadRequestWeapon(_wpnPart, hand_secondary, YS::WEAPON_ENTRY::Get(_wpnPart, item), _wpnPriority, _wpnBank);
+	YS::OBJENTRY::ReadRequestWeapon(_wpnPart, hand_secondary, _fetchWeaponID, _wpnPriority, _wpnBank);
 
+	auto _fetchObject = YS::OBJENTRY::Get(_fetchWeaponID);
+	auto _objectName = string(_fetchObject + 0x08);
+
+	auto _fullName = "obj/" + _objectName;
+
+	auto _allocMDLX = (char*)malloc(YS::FILE::GetSize(_fullName.append(".mdlx").c_str()));
+	auto _fetchMDLX = YS::FILE::LoadBAR(_fullName.append(".mdlx").c_str(), _allocMDLX);
+
+	auto _allocAPDX = (char*)malloc(YS::FILE::GetSize(_fullName.append(".a.us").c_str()));
+	auto _fetchAPDX = YS::FILE::LoadBAR(_fullName.append(".a.us").c_str(), _allocAPDX);
+
+	auto _allocMSET = (char*)malloc(YS::FILE::GetSize(_fullName.append(".mdlx").c_str()));
+	auto _fetchMSET = YS::FILE::LoadBAR(_fullName.append(".mdlx").c_str(), _allocMDLX);
+
+	/*
 	// Flush the CACHE_BUFF to denote changes.
 	YS::CACHE_BUFF::Flush(nullptr);
 
@@ -187,4 +204,5 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	);
 
 	_flushThread.detach();
+	*/
 }
