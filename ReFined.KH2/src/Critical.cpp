@@ -74,7 +74,7 @@ bool SET_ADJUSTMENT;
 ReFined::Continue::Entry RETRY_ENTRY(0x0002, 0x8AB1);
 ReFined::Continue::Entry PREPARE_ENTRY(0x0002, 0x5727);
 
-vector<char*> POSITIVE_ASPECT_SHORT = MultiSignatureScan("\xC7\x00\x00\x00\x55\x00\x00\x00", "x???xxxx");
+vector<char*> POSITIVE_ASPECT_SHORT;
 vector<char*> NEGATIVE_ASPECT_SHORT = MultiSignatureScan("\xC7\x00\x00\x00\xAB\xFF\xFF\xFF", "x???xxxx");
 vector<char*> POSITIVE_ASPECT_LONG = MultiSignatureScan("\xC7\x00\x00\x00\x00\x00\x55\x00\x00\x00", "x?????xxxx");
 vector<char*> NEGATIVE_ASPECT_LONG = MultiSignatureScan("\xC7\x00\x00\x00\x00\x00\xAB\xFF\xFF\xFF", "x?????xxxx");
@@ -83,6 +83,8 @@ vector<char*> POSITIVE_ASPECT_BYTE;
 vector<char*> NEGATIVE_ASPECT_BYTE;
 												
 char* VIEWPORT3D_ADDR = ResolveRelativeAddress<char*>("\x48\x8B\xC4\x57\x41\x56\x41\x57\x48\x81\xEC\x50\x01\x00\x00\x48\xC7\x44\x24\x20\xFE\xFF\xFF\xFF\x48\x89\x58\x10\x48\x89\x68\x18\x48\x89\x70\x20\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\x40\x01\x00\x00\x48\x8B\xE9\x33\xD2\x41\xB8\x00\x01\x00\x00\x48\x8D\x4C\x24\x30\xE8\x00\x00\x00\x00\x45\x33\xFF", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx", 0x311);
+
+auto _fetchSimpleCont = MultiSignatureScan("\x41\x8D\x46\xAB\x41\x89\x84\x3F\x8C\x0D\x00\x00", "xxxxxxxxxxxx");
 
 // Handles the registration and activation of Magic outside of load zones.
 // Used *generally* with Rando, but can be used for other purposes by other mods.
@@ -308,7 +310,7 @@ void ReFined::Critical::ProcessDeath()
 	auto _fetchSora = *reinterpret_cast<const uint16_t*>(YS::MEMBER_TABLE::MemberTable);
 
 	// If Sora's HP is 0, and he isn't Mermaid Sora, and his gauge is present, and he isn't dead:
-	if (*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308) == 0x00 && *YS::AREA::IsInMap && !*YS::MENU::IsMenu && _fetchSora != 0x03BE && _soraGauge != 0x00 && !IS_DEAD)
+	if (*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308) == 0x00 && *YS::AREA::IsInMap && !*YS::MENU::IsMenu && (_fetchSora != 0x03BE && _fetchSora != 0x0656) && _soraGauge != 0x00 && !IS_DEAD)
 	{
 		// Process his death and mark it.
 		YS::SORA::AddHP(reinterpret_cast<char*>(_soraSelf), 0x00, 0x00, false);
@@ -981,8 +983,25 @@ void ReFined::Critical::AspectCorrection()
 			}
 		}
 
-		for (int i = 0; i < POSITIVE_ASPECT_SHORT.size(); i++)
-			memcpy(POSITIVE_ASPECT_SHORT[i] + 0x04, &_offsetPositive, 0x04);
+		if (POSITIVE_ASPECT_BYTE.size() == 0x00)
+		{
+			for (int i = 0xB8; i < 0xC0; i++)
+			{
+				stringstream stream;
+				stream << char(i);
+
+				auto _listPos = MultiSignatureScan("\xC7\x00\x00\x00\x55\x00\x00\x00", "x???xxxx");
+
+				for (auto _ptr : _listPos)
+				{
+					if (_ptr > moduleInfo.startAddr + 0x185000)
+						continue;
+
+					POSITIVE_ASPECT_SHORT.push_back(_ptr);
+				}
+			}
+		}
+
 		for (int i = 0; i < NEGATIVE_ASPECT_SHORT.size(); i++)
 			memcpy(NEGATIVE_ASPECT_SHORT[i] + 0x04, &_offsetNegative, 0x04);
 
@@ -995,6 +1014,9 @@ void ReFined::Critical::AspectCorrection()
 			memcpy(POSITIVE_ASPECT_BYTE[i] + 0x01, &_offsetPositive, 0x04);
 		for (int i = 0; i < NEGATIVE_ASPECT_BYTE.size(); i++)
 			memcpy(NEGATIVE_ASPECT_BYTE[i] + 0x01, &_offsetNegative, 0x04);
+
+		for (int i = 0; i < _fetchSimpleCont.size(); i++)
+			memcpy(_fetchSimpleCont[i] + 0x03, &_offsetNegative, 0x04);
 
 		memcpy(INFORMATION_OFFSET + 0x0B, &_offsetInformation, 0x02);
 
