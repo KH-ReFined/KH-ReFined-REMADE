@@ -4,6 +4,7 @@
 #include "converter.h"
 #include "member.h"
 #include "weapon_entry.h"
+#include "weapon_mset.h"
 #include "weapon.h"
 #include "objentry.h"
 #include "cache_buff.h"
@@ -155,54 +156,71 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	YS::OBJENTRY::ReadRequestWeapon(_wpnPart, hand_secondary, _fetchWeaponID, _wpnPriority, _wpnBank);
 
 	auto _fetchObject = YS::OBJENTRY::Get(_fetchWeaponID);
-	auto _objectName = string(_fetchObject + 0x08);
 
+	auto _objectName = string(_fetchObject + 0x08);
 	auto _fullName = "obj/" + _objectName;
 
-	auto _allocMDLX = (char*)malloc(YS::FILE::GetSize(_fullName.append(".mdlx").c_str()));
-	auto _fetchMDLX = YS::FILE::LoadBAR(_fullName.append(".mdlx").c_str(), _allocMDLX);
+	auto _mdlxName = string(_fullName + ".mdlx");
+	auto _apdxName = string(_fullName + ".a.us");
 
-	auto _allocAPDX = (char*)malloc(YS::FILE::GetSize(_fullName.append(".a.us").c_str()));
-	auto _fetchAPDX = YS::FILE::LoadBAR(_fullName.append(".a.us").c_str(), _allocAPDX);
+	auto _movesetName = YS::WEAPON_MSET::GetFilename(_wpnPart, hand_secondary, 0);
 
-	auto _allocMSET = (char*)malloc(YS::FILE::GetSize(_fullName.append(".mdlx").c_str()));
-	auto _fetchMSET = YS::FILE::LoadBAR(_fullName.append(".mdlx").c_str(), _allocMDLX);
+	auto _searchMDLX = YS::CACHE_BUFF::SearchByName(_mdlxName.c_str(), _wpnPriority);
+	auto _searchAPDX = YS::CACHE_BUFF::SearchByName(_apdxName.c_str(), _wpnPriority);
+	auto _searchMSET = YS::CACHE_BUFF::SearchByName(_movesetName, _wpnPriority);
 
-	/*
-	// Flush the CACHE_BUFF to denote changes.
-	YS::CACHE_BUFF::Flush(nullptr);
+	auto _actualMSET = *reinterpret_cast<char**>(_searchMSET + 0x58);
+	auto _actualMDLX = *reinterpret_cast<char**>(_searchMDLX + 0x58);
+	auto _actualAPDX = *reinterpret_cast<char**>(_searchAPDX + 0x58);
 
-	// immediately launch up a thread to handle during-after flush cycle and detach it.
-	thread _flushThread([item, hand_secondary, _wpnPart, _wpnHide, _charPtr]
+	auto _allocMDLX = (char*)malloc(YS::FILE::GetSize(_mdlxName.c_str()));
+	auto _allocAPDX = (char*)malloc(YS::FILE::GetSize(_apdxName.c_str()));
+	auto _allocMSET = (char*)malloc(YS::FILE::GetSize(_movesetName));
+	
+	YS::FILE::LoadBAR(_mdlxName.c_str(), _allocMDLX);
+	YS::FILE::LoadBAR(_apdxName.c_str(), _allocAPDX);
+	YS::FILE::LoadBAR(_movesetName, _allocMSET);
+
+	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x58) = reinterpret_cast<uint64_t>(_allocMDLX);
+	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x60) = reinterpret_cast<uint64_t>(_allocMDLX);
+
+	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x58) = reinterpret_cast<uint64_t>(_allocAPDX);
+	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x60) = reinterpret_cast<uint64_t>(_allocAPDX);
+
+	*reinterpret_cast<uint64_t*>(_searchMSET + 0x58) = reinterpret_cast<uint64_t>(_allocMSET);
+	*reinterpret_cast<uint64_t*>(_searchMSET + 0x60) = reinterpret_cast<uint64_t>(_allocMSET);
+
+	// Get the targer weapon's objentry and initialize swap.
+	auto _wpnEntry = YS::WEAPON_ENTRY::Get(_wpnPart, item);
+	YS::PARTY::SetWeapon(_charPtr, _wpnEntry, hand_secondary);
+
+	// Fetch the necessary pointers.
+	auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * hand_secondary + 0x0D60);
+	int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
+
+	uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
+	uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
+
+	// If the weapon needs to be shown, set the parameter.
+	if (!_wpnHide)
+	{
+		reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
+
+		if (_wpnPart <= 0x02)
 		{
-			// Do nothing while the flush is still going on.
-			while (YS::CACHE_BUFF::IsFlushing()) {};
-
-			// Get the targer weapon's objentry and initialize swap.
-			auto _wpnEntry = YS::WEAPON_ENTRY::Get(_wpnPart, item);
-			YS::PARTY::SetWeapon(_charPtr, _wpnEntry, hand_secondary);
-
-			// Fetch the necessary pointers.
-			auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * hand_secondary + 0x0D60);
-			int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
-
-			uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
-			uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
-
-			// If the weapon needs to be shown, set the parameter.
-			if (!_wpnHide)
-			{
-				reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
-
-				if (_wpnPart <= 0x02)
-				{
-					auto _targetPAX = CalculatePointer(reinterpret_cast<uint64_t>(KEYBLADE_PAX), { 0x5B0 + 0x08 * hand_secondary, 0x00 });
-					ryj::PAX::Start(_targetPAX, 0x00, 0x01, 0x00, 0x00);
-				}
-			}
+			auto _targetPAX = CalculatePointer(reinterpret_cast<uint64_t>(KEYBLADE_PAX), { 0x5B0 + 0x08 * hand_secondary, 0x00 });
+			ryj::PAX::Start(_targetPAX, 0x00, 0x01, 0x00, 0x00);
 		}
-	);
+	}
 
-	_flushThread.detach();
-	*/
+	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x58) = reinterpret_cast<uint64_t>(nullptr);
+	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x60) = reinterpret_cast<uint64_t>(nullptr);
+
+	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x58) = reinterpret_cast<uint64_t>(nullptr);
+	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x60) = reinterpret_cast<uint64_t>(nullptr);
+
+	*reinterpret_cast<uint64_t*>(_searchMSET + 0x58) = reinterpret_cast<uint64_t>(nullptr);
+	*reinterpret_cast<uint64_t*>(_searchMSET + 0x60) = reinterpret_cast<uint64_t>(nullptr);
+
+	YS::CACHE_BUFF::Flush(nullptr);
 }

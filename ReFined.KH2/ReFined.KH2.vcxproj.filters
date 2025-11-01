@@ -398,5 +398,11 @@
     <ClCompile Include="src\kingdom\weapon.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
+    <ClCompile Include="src\kingdom\weapon_mset.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="include\kingdom\weapon_mset.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
