@@ -9,6 +9,7 @@
 #include "gauge.h"
 #include "title.h"
 #include "steam.h"
+#include "party.h"
 #include "menu.h"
 #include "message.h"
 #include "softreset.h"
@@ -21,8 +22,11 @@
 #include "config_menu.h"
 #include "continue_menu.h"
 #include "memory_manager.h"
+#include "weapon_entry.h"
 
 using namespace std;
+
+bool handled = false;
 
 extern "C"
 {
@@ -76,7 +80,45 @@ extern "C"
 		
 		memcpy(_fetchAdjustment + 0xF6, _nopArray, 0x06);
 		memcpy(_fetchAdjustment + 0x101, _nopArray, 0x06);
-				
+															   
+		auto _fixWeaponHotswap = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\x33\xC0\x0F\x1F\x44\x00\x00\x48\x85\xC0\x75\x09\x48\x8B\x05\x00\x00\x00\x00\xEB\x08\x8B\x48\x70\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x15\x48\x39\x58\x58\x75\xDF\xB9\xFF\xFF\x00\x00\x66\x01\x48\x02\x48\x83\xC4\x20\x5B\xC3\xB9\xFF\xFF\x00\x00\x66\x01\x48\x02\x48\x83\xC4\x20\x5B\xC3", "xxxxxxxxxxxxxxxxxxxxxxxx????xxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+		auto _jumpSpace = _fixWeaponHotswap + 0x294;
+		auto _moduleStart = reinterpret_cast<uint64_t>(moduleInfo.startAddr) - reinterpret_cast<uint64_t>(_jumpSpace) - 0x07;
+
+		vector<uint8_t> _instJumpWorkaround
+		{
+			0xE9, 0x59, 0x02, 0x00, 0x00,
+			0x90, 0x90, 0x90, 0x90, 0x90,
+			0xB9, 0xFF, 0xFF, 0x00, 0x00,
+			0xE9, 0x4A, 0x02, 0x00, 0x00
+		};
+
+		memcpy(_fixWeaponHotswap + 0x36, _instJumpWorkaround.data(), 0x14);
+
+		vector<uint8_t> _instHotpatchWeapon
+		{
+			0x4C, 0x8D, 0x15, 0x00, 0x00, 0x00, 0x00,
+			0x4C, 0x39, 0xD0,
+		    0xEB, 0x03,
+			0xC2, 0x00, 0x00,
+			0x7C, 0x04,
+			0x66, 0x01, 0x48, 0x02,
+			0x4D, 0x31, 0xD2,
+			0xEB, 0x8B
+		};
+
+		vector<uint8_t> _instHotpatchCont
+		{
+			0x48, 0x83, 0xC4, 0x20,
+			0x5B, 0xC3
+		};
+
+		memcpy(_instHotpatchWeapon.data() + 0x03, &_moduleStart, 0x04);
+
+		memcpy(_jumpSpace, _instHotpatchWeapon.data(), 0x1A);
+		memcpy(_jumpSpace - 0x5B, _instHotpatchCont.data(), 0x06);
+
 		// ======================================================== //
 		// THIS ENTIRE REGION IS TO MAKE DRIVE FORMS SHORTCUTTABLE! //
 		// ======================================================== //
@@ -224,6 +266,7 @@ extern "C"
 		memcpy(_fetchInformation + 0x06, _informationFunc.data(), 0x07);
 		memcpy(_fetchInformation + 0x20, _redirInformation.data(), 0x06);
 
+
 		// Fetch all functions that handle fade-in and fade-outs in any way within the 2dFade rectangle.
 											     
 		auto _fetchAllFade = MultiSignatureScan("\x41\xB8\xFF\xFF\xFF\xFF\x48\x8D\x0D\x00\x00\x00\x00\x0F\xB7\xD3\x66\xF7\xD2\xE8\x00\x00\x00\x00\xB8\x01\x01\x00\x00", "xxxxxxxxx????xxxxxxx????xxxxx");
@@ -316,5 +359,11 @@ extern "C"
 		ReFined::Continuous::EnforcePrompts();
 		ReFined::Continuous::ActivateWarpGOA();
 		ReFined::Continuous::HandleFrameLimiter();
+
+		if (!*YS::TITLE::IsTitle && *YS::AREA::IsInMap && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00 && !handled)
+		{
+			YS::PARTY::ChangeWeapon(0x01, false, 0x0029);
+			handled = true;
+		}
 	}
 }

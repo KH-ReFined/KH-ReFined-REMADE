@@ -66,6 +66,9 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 		auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * hand_secondary + 0x0D60);
 		int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
 
+		if (_weaponPtr == nullptr || reinterpret_cast<int64_t>(_weaponPtr) == -1)
+			return;
+
 		uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
 		uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
 
@@ -201,18 +204,6 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
 	uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
 
-	// If the weapon needs to be shown, set the parameter.
-	if (!_wpnHide)
-	{
-		reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
-
-		if (_wpnPart <= 0x02)
-		{
-			auto _targetPAX = CalculatePointer(reinterpret_cast<uint64_t>(KEYBLADE_PAX), { 0x5B0 + 0x08 * hand_secondary, 0x00 });
-			ryj::PAX::Start(_targetPAX, 0x00, 0x01, 0x00, 0x00);
-		}
-	}
-
 	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x58) = reinterpret_cast<uint64_t>(nullptr);
 	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x60) = reinterpret_cast<uint64_t>(nullptr);
 
@@ -223,4 +214,8 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	*reinterpret_cast<uint64_t*>(_searchMSET + 0x60) = reinterpret_cast<uint64_t>(nullptr);
 
 	YS::CACHE_BUFF::Flush(nullptr);
+
+	// If the weapon needs to be shown, set the parameter.
+	if (!_wpnHide)
+		reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
 }
