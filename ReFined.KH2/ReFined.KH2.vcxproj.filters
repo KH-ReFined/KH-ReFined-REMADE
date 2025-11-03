@@ -225,6 +225,9 @@
     <ClInclude Include="include\kingdom\weapon.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
+    <ClInclude Include="include\kingdom\item.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\discord\activity_manager.cpp">
@@ -403,6 +406,9 @@
     </ClCompile>
     <ClCompile Include="include\kingdom\weapon_mset.h">
       <Filter>Header Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\item.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

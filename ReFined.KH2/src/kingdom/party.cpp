@@ -10,6 +10,8 @@
 #include "cache_buff.h"
 #include "file.h"
 #include "pax.h"
+#include "area.h"
+#include "item.h"
 
 #include <thread>
 #include <cassert>
@@ -158,6 +160,8 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	// And before you ask, all C/C++ threads either block execution or crash Panacea.
 	YS::OBJENTRY::ReadRequestWeapon(_wpnPart, hand_secondary, _fetchWeaponID, _wpnPriority, _wpnBank);
 
+	// Fetch the weapon file names according to the Objentry Data.
+
 	auto _fetchObject = YS::OBJENTRY::Get(_fetchWeaponID);
 
 	auto _objectName = string(_fetchObject + 0x08);
@@ -168,13 +172,13 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 
 	auto _movesetName = YS::WEAPON_MSET::GetFilename(_wpnPart, hand_secondary, 0);
 
+	// Search the regions reserved by ReadRequestWeapon.
+
 	auto _searchMDLX = YS::CACHE_BUFF::SearchByName(_mdlxName.c_str(), _wpnPriority);
 	auto _searchAPDX = YS::CACHE_BUFF::SearchByName(_apdxName.c_str(), _wpnPriority);
 	auto _searchMSET = YS::CACHE_BUFF::SearchByName(_movesetName, _wpnPriority);
 
-	auto _actualMSET = *reinterpret_cast<char**>(_searchMSET + 0x58);
-	auto _actualMDLX = *reinterpret_cast<char**>(_searchMDLX + 0x58);
-	auto _actualAPDX = *reinterpret_cast<char**>(_searchAPDX + 0x58);
+	// Allocate memory for the files and load them. [TODO: Change to Area::Alloc so I don't have to free these manually.]
 
 	auto _allocMDLX = (char*)malloc(YS::FILE::GetSize(_mdlxName.c_str()));
 	auto _allocAPDX = (char*)malloc(YS::FILE::GetSize(_apdxName.c_str()));
@@ -184,38 +188,69 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 	YS::FILE::LoadBAR(_apdxName.c_str(), _allocAPDX);
 	YS::FILE::LoadBAR(_movesetName, _allocMSET);
 
+	// Override the address information on CACHE_BUFF.
+
 	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x58) = reinterpret_cast<uint64_t>(_allocMDLX);
-	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x60) = reinterpret_cast<uint64_t>(_allocMDLX);
-
 	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x58) = reinterpret_cast<uint64_t>(_allocAPDX);
-	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x60) = reinterpret_cast<uint64_t>(_allocAPDX);
-
 	*reinterpret_cast<uint64_t*>(_searchMSET + 0x58) = reinterpret_cast<uint64_t>(_allocMSET);
-	*reinterpret_cast<uint64_t*>(_searchMSET + 0x60) = reinterpret_cast<uint64_t>(_allocMSET);
 
-	// Get the targer weapon's objentry and initialize swap.
+	// Get the target weapon's objentry and initialize swap.
+
 	auto _wpnEntry = YS::WEAPON_ENTRY::Get(_wpnPart, item);
 	YS::PARTY::SetWeapon(_charPtr, _wpnEntry, hand_secondary);
 
 	// Fetch the necessary pointers.
+
 	auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * hand_secondary + 0x0D60);
 	int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
 
 	uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
 	uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
 
-	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x58) = reinterpret_cast<uint64_t>(nullptr);
-	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x60) = reinterpret_cast<uint64_t>(nullptr);
-
-	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x58) = reinterpret_cast<uint64_t>(nullptr);
-	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x60) = reinterpret_cast<uint64_t>(nullptr);
-
-	*reinterpret_cast<uint64_t*>(_searchMSET + 0x58) = reinterpret_cast<uint64_t>(nullptr);
-	*reinterpret_cast<uint64_t*>(_searchMSET + 0x60) = reinterpret_cast<uint64_t>(nullptr);
-
-	YS::CACHE_BUFF::Flush(nullptr);
-
 	// If the weapon needs to be shown, set the parameter.
 	if (!_wpnHide)
 		reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
+
+	// Reset the CACHE_BUFF addresses for FLUSH to take over.
+
+	*reinterpret_cast<uint64_t*>(_searchMDLX + 0x58) = reinterpret_cast<uint64_t>(nullptr);
+	*reinterpret_cast<uint64_t*>(_searchAPDX + 0x58) = reinterpret_cast<uint64_t>(nullptr);
+	*reinterpret_cast<uint64_t*>(_searchMSET + 0x58) = reinterpret_cast<uint64_t>(nullptr);
+
+	YS::CACHE_BUFF::Flush(nullptr);
+
+	// If the WEAPON_PART is 0x01 [Meaning the character is Sora]:
+	if (_wpnPart == 0x01)
+	{
+		// Calculate the address of the Weapon Item according to Sora's form.
+		auto _wpnAddr = reinterpret_cast<uint16_t*>(*(YS::AREA::SaveData + 0x3524) == 0x01 ? YS::AREA::SaveData + 0x32F4 :
+												   (*(YS::AREA::SaveData + 0x3524) == 0x04 ? YS::AREA::SaveData + 0x339C :
+												   (*(YS::AREA::SaveData + 0x3524) == 0x05 ? YS::AREA::SaveData + 0x33D4 : YS::AREA::SaveData + 0x24F0)));
+
+		// Read the weapon, just in case.
+		auto _fetchWeapon = *_wpnAddr;
+
+		// Attach the target item as the weapon, removing it from the backyard.
+		YS::ITEM::ReduceBackyard(item, 0x01);
+		*_wpnAddr = item;
+
+		// Add the previous weapon to the backyard.
+		YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
+	}
+
+	// If it ain't Sora:
+	else
+	{
+		auto _wpnAddr = YS::AREA::SaveData + 0x24F0 + (0x114 * (_wpnPart - 0x01));
+
+		// Read the weapon, just in case.
+		auto _fetchWeapon = *_wpnAddr;
+
+		// Attach the target item as the weapon, removing it from the backyard.
+		YS::ITEM::ReduceBackyard(item, 0x01);
+		*_wpnAddr = item;
+
+		// Add the previous weapon to the backyard.
+		YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
+	}
 }

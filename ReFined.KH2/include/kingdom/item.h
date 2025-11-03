@@ -1,0 +1,21 @@
+#pragma once
+
+#include "SigScan.h"
+
+namespace YS
+{
+	class ITEM
+	{
+	public:
+		using GetNumBackyard_t = uint64_t(*)(uint16_t item);
+		static GetNumBackyard_t GetNumBackyard;
+
+		using GetBackyard_t = void(*)(uint16_t item, int num);
+		static GetBackyard_t GetBackyard;
+
+		using ReduceBackyard_t = void(*)(uint16_t item, int num);
+		static ReduceBackyard_t ReduceBackyard;
+
+		static char* ImageBuff;
+	};
+}

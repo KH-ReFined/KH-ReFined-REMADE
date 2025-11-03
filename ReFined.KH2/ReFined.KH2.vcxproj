@@ -57,6 +57,7 @@
     <ClInclude Include="include\kingdom\gauge.h" />
     <ClInclude Include="include\kingdom\hardpad.h" />
     <ClInclude Include="include\kingdom\information.h" />
+    <ClInclude Include="include\kingdom\item.h" />
     <ClInclude Include="include\kingdom\itempic.h" />
     <ClInclude Include="include\kingdom\jumpeffect.h" />
     <ClInclude Include="include\kingdom\magic.h" />
@@ -119,6 +120,7 @@
     <ClCompile Include="src\kingdom\gauge.cpp" />
     <ClCompile Include="src\kingdom\hardpad.cpp" />
     <ClCompile Include="src\kingdom\information.cpp" />
+    <ClCompile Include="src\kingdom\item.cpp" />
     <ClCompile Include="src\kingdom\itempic.cpp" />
     <ClCompile Include="src\kingdom\jumpeffect.cpp" />
     <ClCompile Include="src\kingdom\magic.cpp" />
