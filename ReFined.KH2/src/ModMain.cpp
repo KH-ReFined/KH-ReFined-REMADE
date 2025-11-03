@@ -81,6 +81,8 @@ extern "C"
 		memcpy(_fetchAdjustment + 0xF6, _nopArray, 0x06);
 		memcpy(_fetchAdjustment + 0x101, _nopArray, 0x06);
 															   
+		// Fixes a problem with Weapon Swapping that crashes the game.
+
 		auto _fixWeaponHotswap = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\x33\xC0\x0F\x1F\x44\x00\x00\x48\x85\xC0\x75\x09\x48\x8B\x05\x00\x00\x00\x00\xEB\x08\x8B\x48\x70\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x15\x48\x39\x58\x58\x75\xDF\xB9\xFF\xFF\x00\x00\x66\x01\x48\x02\x48\x83\xC4\x20\x5B\xC3\xB9\xFF\xFF\x00\x00\x66\x01\x48\x02\x48\x83\xC4\x20\x5B\xC3", "xxxxxxxxxxxxxxxxxxxxxxxx????xxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 		auto _jumpSpace = _fixWeaponHotswap + 0x294;
@@ -118,6 +120,41 @@ extern "C"
 
 		memcpy(_jumpSpace, _instHotpatchWeapon.data(), 0x1A);
 		memcpy(_jumpSpace - 0x5B, _instHotpatchCont.data(), 0x06);
+
+		// Fixed Party Limits crashing the game post-fights.
+
+		auto _fetchLimitCheck = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x30\x8B\x79\x10\x48\x8B\xF1\x0F\x29\x74\x24\x20\xF3\x0F\x10\x71\x18\x8B\x49\x08\xE8\x00\x00\x00\x00\x8B\x48\x04\xE8\x00\x00\x00\x00\x8B\x0E\x48\x8B\xD8\xE8\x00\x00\x00\x00\x0F\x28\xDE\x44\x8B\xC7\x48\x8B\xD3\x48\x8B\xC8", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxx????xxxxxx????xxxxxxxxxxxx");
+		auto _fetchLimitPint = ResolveRelativeAddress<uint64_t>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x20\x57\x48\x83\xEC\x30\x48\x8B\xFA\x8B\xD9\xE8\x00\x00\x00\x00\x48\x8B\xE8\x0F\xB7\x08\xE8\x00\x00\x00\x00\x48\x8B\xF0\x48\x85\xC0\x0F\x84\xCF\x00\x00\x00\xB9\x28\x01\x00\x00\xE8\x00\x00\x00\x00\x33\xDB\x48\x85\xC0", "xxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxx", 0x6A);
+
+		vector<uint8_t> _instFixLimits
+		{
+			0x4C, 0x8B, 0x1D, 0x00, 0x00, 0x00, 0x00,
+			0x4D, 0x85, 0xDB,
+			0x75, 0x0A,
+			0xEB, 0x02,
+			0xEB, 0xF0,
+			0x4D, 0x31, 0xDB,
+			0xC3, 0x90, 0x90
+		};
+
+		auto _limitAddrCalc = _fetchLimitPint - reinterpret_cast<uint64_t>(_fetchLimitCheck - 0x0E) - 0x07;
+		memcpy(_instFixLimits.data() + 0x03, &_limitAddrCalc, 0x04);
+
+		vector<uint64_t> _fetchFunction(0x68);
+		memcpy(_fetchFunction.data(), _fetchLimitCheck, 0x68);
+		memcpy(_fetchLimitCheck + 0x08, _fetchFunction.data(), 0x68);
+
+		auto _tempPtr = reinterpret_cast<uint32_t*>(_fetchLimitCheck + 0x4E);
+		*_tempPtr -= 0x08;
+
+		_tempPtr = reinterpret_cast<uint32_t*>(_fetchLimitCheck + 0x2B);
+		*_tempPtr -= 0x08;
+		_tempPtr = reinterpret_cast<uint32_t*>(_fetchLimitCheck + 0x33);
+		*_tempPtr -= 0x08;
+		_tempPtr = reinterpret_cast<uint32_t*>(_fetchLimitCheck + 0x3D);
+		*_tempPtr -= 0x08;
+
+		memcpy(_fetchLimitCheck - 0x0E, _instFixLimits.data(), 0x16);
 
 		// ======================================================== //
 		// THIS ENTIRE REGION IS TO MAKE DRIVE FORMS SHORTCUTTABLE! //
@@ -359,11 +396,5 @@ extern "C"
 		ReFined::Continuous::EnforcePrompts();
 		ReFined::Continuous::ActivateWarpGOA();
 		ReFined::Continuous::HandleFrameLimiter();
-
-		if (!*YS::TITLE::IsTitle && *YS::AREA::IsInMap && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00 && !handled)
-		{
-			YS::PARTY::ChangeWeapon(0x01, false, 0x0029);
-			handled = true;
-		}
 	}
 }
