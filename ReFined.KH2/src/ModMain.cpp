@@ -413,7 +413,7 @@ extern "C"
 	{
 		ReFined::Demand::TriggerReset();
 		// ReFined::Demand::ShortcutSets();
-		ReFined::Demand::EncounterPlus();
+		// ReFined::Demand::EncounterPlus();
 
 		// ReFined::Critical::HandleCrown();
 		// ReFined::Critical::ProcessDeath();
@@ -424,10 +424,10 @@ extern "C"
 
 		ReFined::Critical::HandleConfiguration();
 		ReFined::Critical::HandleIntro();
-		ReFined::Critical::PrologueSkip();
+		// ReFined::Critical::PrologueSkip();
 		ReFined::Critical::AspectCorrection();
 
-		// ReFined::Continuous::DiscordRPC();
+		ReFined::Continuous::DiscordRPC();
 		ReFined::Continuous::Autoattack();
 		ReFined::Continuous::HandleShake();
 		ReFined::Continuous::FixSummonBGM();
