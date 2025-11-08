@@ -28,6 +28,10 @@ using namespace std;
 
 bool handled = false;
 
+vector<void(*)(const wchar_t*)> moduleinit;
+vector<void(*)()> moduleexec;
+
+
 extern "C"
 {
 	__declspec(dllexport) void OnInit(wchar_t* mod_path)
@@ -368,27 +372,62 @@ extern "C"
 		memcpy(_fetchCulling3D + 0x152, &_jmpByte, 0x01);
 
 		memcpy(_fetchCulling2D + 0x06C, &_falseByte, 0x01);
+
+		wchar_t search[MAX_PATH];
+		wcscpy(search, mod_path);
+		wcscat(search, L"\\dll\\modules\\ReFined-*.dll");
+
+		WIN32_FIND_DATAW find;
+		HANDLE fh = FindFirstFileW(search, &find);
+
+		if (fh != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				wchar_t filepath[MAX_PATH];
+				wcscpy(filepath, L"\\dll\\modules\\");
+				wcscat(filepath, find.cFileName);
+
+				HMODULE dllhandle = LoadLibraryW(filepath);
+				if (dllhandle)
+				{
+					void (*funcInit)(const wchar_t*) = (void(*)(const wchar_t*))GetProcAddress(dllhandle, "RF_ModuleInit");
+					void (*funcExec)() = (void(*)())GetProcAddress(dllhandle, "RF_ModuleExecute");
+
+					if (funcInit)
+						moduleinit.push_back(funcInit);
+
+					if (funcExec)
+						moduleexec.push_back(funcExec);
+				}
+			} while (FindNextFileW(fh, &find));
+
+			FindClose(fh);
+		}
+
+		for (auto _execFunc : moduleinit)
+			_execFunc(mod_path);
 	}
 
 	__declspec(dllexport) void OnFrame()
 	{
-		ReFined::Demand::FormKeyLogic();
 		ReFined::Demand::TriggerReset();
-		ReFined::Demand::ShortcutSets();
+		// ReFined::Demand::ShortcutSets();
 		ReFined::Demand::EncounterPlus();
 
-		ReFined::Critical::HandleCrown();
-		ReFined::Critical::ProcessDeath();
-		ReFined::Critical::RegisterMagic();
-		ReFined::Critical::ShowInformation();
-		ReFined::Critical::RegisterMovement();
-		ReFined::Critical::RetryBattles();
+		// ReFined::Critical::HandleCrown();
+		// ReFined::Critical::ProcessDeath();
+		// ReFined::Critical::RegisterMagic();
+		// ReFined::Critical::ShowInformation();
+		// ReFined::Critical::RegisterMovement();
+		// ReFined::Critical::RetryBattles();
+
 		ReFined::Critical::HandleConfiguration();
 		ReFined::Critical::HandleIntro();
 		ReFined::Critical::PrologueSkip();
 		ReFined::Critical::AspectCorrection();
 
-		ReFined::Continuous::DiscordRPC();
+		// ReFined::Continuous::DiscordRPC();
 		ReFined::Continuous::Autoattack();
 		ReFined::Continuous::HandleShake();
 		ReFined::Continuous::FixSummonBGM();
@@ -397,13 +436,5 @@ extern "C"
 		ReFined::Continuous::EnforcePrompts();
 		ReFined::Continuous::ActivateWarpGOA();
 		ReFined::Continuous::HandleFrameLimiter();
-
-		/*
-		if (!*YS::TITLE::IsTitle && *YS::AREA::IsInMap && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00 && !handled)
-		{
-			YS::PARTY::ChangeWeapon(0x01, false, 0x0029);
-			handled = true;
-		}
-		*/
 	}
 }
