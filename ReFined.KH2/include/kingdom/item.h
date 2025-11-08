@@ -7,7 +7,7 @@ namespace YS
 	class ITEM
 	{
 	public:
-		using GetNumBackyard_t = uint64_t(*)(uint16_t item);
+		using GetNumBackyard_t = uint64_t(*)(uint64_t item);
 		static GetNumBackyard_t GetNumBackyard;
 
 		using GetBackyard_t = void(*)(uint16_t item, int num);
@@ -17,5 +17,6 @@ namespace YS
 		static ReduceBackyard_t ReduceBackyard;
 
 		static char* ImageBuff;
+		static uint64_t pint_itemmenuinfo;
 	};
 }

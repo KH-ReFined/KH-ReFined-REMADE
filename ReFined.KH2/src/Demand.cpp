@@ -26,6 +26,8 @@
 #include "jumpeffect.h"
 #include "command_draw.h"
 #include "sound.h"
+#include "item.h"
+#include "party.h"
 #include "member_table.h"
 
 #include "Demand.h"
@@ -43,6 +45,13 @@ bool DEBOUNCE_SHORTCUT = false;
 uint8_t CURRENT_SHORTCUT_SET = 0x80;
 vector<vector<char>> DEFAULT_SHORTCUT_NAMES;
 
+uint16_t KEY_PRIMARY = 0x00;
+uint16_t KEY_SECONDARY = 0x00;
+
+vector<uint16_t*> KEYBLADE_LIST;
+bool PROCESS_KEY;
+												 
+char* ITEM_SELECT_UPDATE = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x83\xEC\x40\x45\x32\xE4\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????");
 
 // TODO: Config implementation.
 void ReFined::Demand::TriggerReset()
@@ -112,11 +121,11 @@ void ReFined::Demand::EncounterPlus()
 
 		if (_vendorOffset != 0xFF && *(YS::AREA::IsVendor + _vendorOffset) != 0x02)
 		{
-			std::random_device dev;
-			std::mt19937 rng(dev());
-			std::uniform_int_distribution<std::mt19937::result_type> dist6(1, 100);
+			random_device dev;
+			mt19937 rng(dev());
+			uniform_int_distribution<mt19937::result_type> randDist(1, 100);
 
-			auto _randomChance = dist6(rng);
+			auto _randomChance = randDist(rng);
 
 			if (_randomChance >= 80)
 				*(YS::AREA::IsVendor + _vendorOffset) = 0x02;
@@ -263,5 +272,112 @@ void ReFined::Demand::ShortcutSets()
 			if (IS_CUSTOMIZE)
 				YS::MENU::UpdateListShortcut(0x00);
 		}
+	}
+}
+
+void ReFined::Demand::FormKeyLogic()
+{
+	if (!*YS::TITLE::IsTitle && *YS::AREA::IsInMap)
+	{
+		if (*YS::MENU::IsMenu && *YS::MENU::SubMenuType == 0x02)
+		{
+			auto _fetchButtons = *YS::HARDPAD::Input;
+
+			auto _readItemPoint = CalculatePointer(YS::ITEM::pint_itemmenuinfo, { 0x0004 });
+			auto _readNamePoint = CalculatePointer(YS::ITEM::pint_itemmenuinfo, { 0x0794 });
+
+			if (KEY_PRIMARY == 0x00)
+				KEY_PRIMARY = *reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x24F0);
+
+			if (KEY_SECONDARY == 0x00 && *(YS::AREA::SaveData + 0x3524) != 0x00)
+			{
+				auto _formPtr = *(YS::AREA::SaveData + 0x3524) == 0x01 ? YS::AREA::SaveData + 0x32F4 :
+							   (*(YS::AREA::SaveData + 0x3524) == 0x04 ? YS::AREA::SaveData + 0x339C :
+							   (*(YS::AREA::SaveData + 0x3524) == 0x05 ? YS::AREA::SaveData + 0x33D4 : 0x00));
+
+				if (_formPtr != 0x00)
+					KEY_SECONDARY = *reinterpret_cast<uint16_t*>(_formPtr);
+			}
+
+			if (KEYBLADE_LIST.size() == 0x00)
+			{
+				KEYBLADE_LIST = vector<uint16_t*>
+				{
+					reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x24F0),
+					reinterpret_cast<uint16_t*>(YS::ITEM::GetNumBackyard(0x001A) != 0x00 ? YS::AREA::SaveData + 0x32F4 : nullptr),
+					reinterpret_cast<uint16_t*>(YS::ITEM::GetNumBackyard(0x001F) != 0x00 ? YS::AREA::SaveData + 0x339C : nullptr),
+					reinterpret_cast<uint16_t*>(YS::ITEM::GetNumBackyard(0x001D) != 0x00 ? YS::AREA::SaveData + 0x33D4 : nullptr)
+				};
+
+				KEYBLADE_LIST.erase(remove(KEYBLADE_LIST.begin(), KEYBLADE_LIST.end(), nullptr), KEYBLADE_LIST.end());
+			}
+
+			vector<uint16_t> _equipList;
+
+			for (auto _keyAddr : KEYBLADE_LIST)
+				_equipList.push_back(*_keyAddr);
+
+			auto _subOptionSelect = CalculatePointer(YS::MENU::pint_suboptionselect, { 0x00 });
+
+			if (_subOptionSelect == nullptr)
+				return;
+
+			if (*_subOptionSelect > 0x00 && *_subOptionSelect < _equipList.size())
+			{
+				if ((_fetchButtons & 0x1000) == 0x1000 && !PROCESS_KEY)
+				{
+					PROCESS_KEY = true;
+
+					if (*_readNamePoint == 0x09 && *(_readNamePoint + 0x50 * *_subOptionSelect) == 0x09)
+					{
+						vector<uint8_t> _baseName(0x50);
+						vector<uint8_t> _chosenName(0x50);
+
+						uint16_t _baseItem = 0x00;
+						uint16_t _chosenItem = 0x00;
+
+						memcpy(_baseName.data(), _readNamePoint, 0x50);
+						memcpy(_chosenName.data(), _readNamePoint + 0x50 * *_subOptionSelect, 0x50);
+
+						memcpy(_readNamePoint, _chosenName.data(), 0x50);
+						memcpy(_readNamePoint + 0x50 * *_subOptionSelect, _baseName.data(), 0x50);
+
+						memcpy(&_baseItem, _readItemPoint, 0x02);
+						memcpy(&_chosenItem, _readItemPoint + 0x06 * *_subOptionSelect, 0x02);
+
+						memcpy(_readItemPoint, &_chosenItem, 0x02);
+						memcpy(_readItemPoint + 0x06 * *_subOptionSelect, &_baseItem, 0x02);
+
+						*KEYBLADE_LIST[*_subOptionSelect] = _equipList.at(0x00);
+						*KEYBLADE_LIST[0x00] = _equipList.at(*_subOptionSelect);
+
+						YS::SOUND::PlaySFX(0x02);
+						reinterpret_cast<void(*)()>(ITEM_SELECT_UPDATE)();
+					}
+				}
+
+				else if ((_fetchButtons & 0x1000) == 0x00 && PROCESS_KEY)
+				{
+					auto _baseAddr = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x24F0);
+
+					YS::PARTY::ChangeWeapon(1, false, *_baseAddr);
+
+					if (*(YS::AREA::SaveData + 0x3524) != 0x00)
+					{
+						auto _formAddr = reinterpret_cast<uint16_t*>(*(YS::AREA::SaveData + 0x3524) == 0x01 ? (YS::AREA::SaveData + 0x32F4) :
+							(*(YS::AREA::SaveData + 0x3524) == 0x04 ? (YS::AREA::SaveData + 0x339C) :
+								(*(YS::AREA::SaveData + 0x3524) == 0x05 ? (YS::AREA::SaveData + 0x33D4) : nullptr)));
+
+						if (_formAddr != nullptr)
+							YS::PARTY::ChangeWeapon(1, true, *_formAddr);
+					}
+
+					PROCESS_KEY = false;
+				}
+			}
+		}
+
+		else if ((!*YS::MENU::IsMenu || *YS::MENU::SubMenuType != 0x02) && KEYBLADE_LIST.size() > 0)
+			KEYBLADE_LIST.clear();
 	}
 }

@@ -19,16 +19,17 @@
 bool THREAD_RUNNING = false;
 
 YS::PARTY::SetWeapon_t YS::PARTY::SetWeapon = SignatureScan<YS::PARTY::SetWeapon_t>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x30\x8B\x81\xC8\x06\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-											 
-char* KEYBLADE_PAX = ResolveRelativeAddress<char*>("\x48\x8B\xD1\x4C\x8D\x05\x00\x00\x00\x00\x4C\x8D\x0D\x00\x00\x00\x00\x49\x8B\x00\x48\x85\xC0\x74\x18\x0F\x1F\x80\x00\x00\x00\x00\x48\x39\x10\x74\x1B\x48\x8B\x48\x20\x48\x8B\xC1\x48\x85\xC9", "xxxxxx????xxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 0x10A);
+char* YS::PARTY::KeybladePAX = ResolveRelativeAddress<char*>("\x48\x8B\xD1\x4C\x8D\x05\x00\x00\x00\x00\x4C\x8D\x0D\x00\x00\x00\x00\x49\x8B\x00\x48\x85\xC0\x74\x18\x0F\x1F\x80\x00\x00\x00\x00\x48\x39\x10\x74\x1B\x48\x8B\x48\x20\x48\x8B\xC1\x48\x85\xC9", "xxxxxx????xxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 0x10A);
+
 
 void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 {
 	thread _fetchThread([part, hand_secondary, item]
 	{
-		while (THREAD_RUNNING) {}
+		while (THREAD_RUNNING || YS::CACHE_BUFF::IsFlushing()) {}
 
 		THREAD_RUNNING = true;
+		bool _wpnParsed = false;
 
 		char* _charPtr = nullptr;
 		bool is_hide = false;
@@ -170,7 +171,6 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 		YS::OBJENTRY::ReadRequestWeapon(_wpnPart, hand_secondary, _fetchWeaponID, _wpnPriority, _wpnBank);
 		YS::CACHE_BUFF::Flush(nullptr);
 
-
 		while (YS::CACHE_BUFF::IsFlushing()) {}
 
 		// Get the target weapon's objentry and initialize swap.
@@ -188,49 +188,47 @@ void YS::PARTY::ChangeWeapon(int part, bool hand_secondary, int item)
 
 		// If the weapon needs to be shown, set the parameter.
 		if (!_wpnHide)
-		{
 			reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
-		
-			if (_wpnPart <= 0x02)
-			{
-				auto _targetPAX = CalculatePointer(reinterpret_cast<uint64_t>(KEYBLADE_PAX), { 0x5B0 + 0x08 * hand_secondary, 0x00 });
-				ryj::PAX::Start(_targetPAX, 0x00, 0x01, 0x00, 0x00);
-			}
-		}
 
 		// If the WEAPON_PART is 0x01 [Meaning the character is Sora]:
 		if (_wpnPart == 0x01)
 		{
 			// Calculate the address of the Weapon Item according to Sora's form.
-			auto _wpnAddr = reinterpret_cast<uint16_t*>(*(YS::AREA::SaveData + 0x3524) == 0x01 ? YS::AREA::SaveData + 0x32F4 :
-				(*(YS::AREA::SaveData + 0x3524) == 0x04 ? YS::AREA::SaveData + 0x339C :
-					(*(YS::AREA::SaveData + 0x3524) == 0x05 ? YS::AREA::SaveData + 0x33D4 : YS::AREA::SaveData + 0x24F0)));
+			auto _wpnAddr = hand_secondary ? reinterpret_cast<uint16_t*>(*(YS::AREA::SaveData + 0x3524) == 0x01 ? YS::AREA::SaveData + 0x32F4 :
+																		(*(YS::AREA::SaveData + 0x3524) == 0x04 ? YS::AREA::SaveData + 0x339C :
+																		(*(YS::AREA::SaveData + 0x3524) == 0x05 ? YS::AREA::SaveData + 0x33D4 : YS::AREA::SaveData + 0x24F0))) : reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x24F0);
 
 			// Read the weapon, just in case.
 			auto _fetchWeapon = *_wpnAddr;
 
-			// Attach the target item as the weapon, removing it from the backyard.
-			YS::ITEM::ReduceBackyard(item, 0x01);
-			*_wpnAddr = item;
+			if (_fetchWeapon != item)
+			{
+				// Attach the target item as the weapon, removing it from the backyard.
+				YS::ITEM::ReduceBackyard(item, 0x01);
+				*_wpnAddr = item;
 
-			// Add the previous weapon to the backyard.
-			YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
+				// Add the previous weapon to the backyard.
+				YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
+			}
 		}
 
 		// If it ain't Sora:
 		else
 		{
-			auto _wpnAddr = YS::AREA::SaveData + 0x24F0 + (0x114 * (_wpnPart - 0x01));
+			auto _wpnAddr = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x24F0 + (0x114 * (_wpnPart - 0x01)));
 
 			// Read the weapon, just in case.
 			auto _fetchWeapon = *_wpnAddr;
 
-			// Attach the target item as the weapon, removing it from the backyard.
-			YS::ITEM::ReduceBackyard(item, 0x01);
-			*_wpnAddr = item;
+			if (_fetchWeapon != item)
+			{
+				// Attach the target item as the weapon, removing it from the backyard.
+				YS::ITEM::ReduceBackyard(item, 0x01);
+				*_wpnAddr = item;
 
-			// Add the previous weapon to the backyard.
-			YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
+				// Add the previous weapon to the backyard.
+				YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
+			}
 		}
 
 		THREAD_RUNNING = false;

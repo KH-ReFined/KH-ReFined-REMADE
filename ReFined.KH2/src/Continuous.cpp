@@ -23,11 +23,15 @@
 #include "command_draw.h"
 #include "shake.h"
 #include "command_elem.h"
+#include "party.h"
+#include <chrono>
 
 #include "Continuous.h"
 #include "Critical.h"
 #include "SigScan.h"
 #include <hardpad.h>
+
+using namespace std;
 
 bool IS_SHOWN = false;
 bool SYSTEM_LOADED = false;
@@ -71,6 +75,8 @@ char* ADJUST_VIEWPORT_FUNCTION = SignatureScan<char*>("\x48\x83\xEC\x78\x0F\x29\
 vector<char> ADJUST_GLOW_ARRAY;
 vector<char> INIT_VIEWPORT_ARRAY;
 vector<char> ADJUST_VIEWPORT_ARRAY;
+
+chrono::system_clock::time_point _currentTime = chrono::system_clock::time_point();
 
 bool SHAKE_WRITTEN;
 

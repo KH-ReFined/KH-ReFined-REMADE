@@ -372,6 +372,7 @@ extern "C"
 
 	__declspec(dllexport) void OnFrame()
 	{
+		ReFined::Demand::FormKeyLogic();
 		ReFined::Demand::TriggerReset();
 		ReFined::Demand::ShortcutSets();
 		ReFined::Demand::EncounterPlus();
@@ -396,5 +397,13 @@ extern "C"
 		ReFined::Continuous::EnforcePrompts();
 		ReFined::Continuous::ActivateWarpGOA();
 		ReFined::Continuous::HandleFrameLimiter();
+
+		/*
+		if (!*YS::TITLE::IsTitle && *YS::AREA::IsInMap && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00 && !handled)
+		{
+			YS::PARTY::ChangeWeapon(0x01, false, 0x0029);
+			handled = true;
+		}
+		*/
 	}
 }
