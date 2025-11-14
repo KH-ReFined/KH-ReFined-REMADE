@@ -13,6 +13,5 @@ namespace ReFined
 			static void HandleFrameLimiter();
 			static void HandleSaveGlow();
 			static void HandleShake();
-			static void Autoattack();
 	};
 }

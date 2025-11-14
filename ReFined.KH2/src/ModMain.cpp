@@ -1,3 +1,6 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <cassert>
+
 #include <cstdio>
 #include <Windows.h>
 #include <iostream>
@@ -30,7 +33,6 @@ bool handled = false;
 
 vector<void(*)(const wchar_t*)> moduleinit;
 vector<void(*)()> moduleexec;
-
 
 extern "C"
 {
@@ -159,56 +161,6 @@ extern "C"
 		*_tempPtr -= 0x08;
 
 		memcpy(_fetchLimitCheck - 0x0E, _instFixLimits.data(), 0x16);
-
-		// ======================================================== //
-		// THIS ENTIRE REGION IS TO MAKE DRIVE FORMS SHORTCUTTABLE! //
-		// ======================================================== //
-
-		// TODO: Toggleability.
-
-		char* _equipOffset = SignatureScan<char*>("\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x0F\xB6\x48\x02\x84\xC9\x74\x19", "xxxxx????xxxxxxxx");
-		char* _listOffset = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x57\x48\x83\xEC\x20\x33\xDB\x48\x89\x6C\x24\x30\x41\x8B\xF8\x48\x8B\xE9", "xxxxxxxxxxxxxxxxxxxxxxx");
-		char* _iconOffset = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xFA\x41\x0F\xB6\xD9\x41\x0F\xB6\xD0\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxx????");
-		char* _categoryOffset = SignatureScan<char*>("\x48\x89\x5C\x24\x10\x48\x89\x6C\x24\x18\x48\x89\x74\x24\x20\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x81\xEC\x90\x01\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\x80\x01\x00\x00\x33\xF6\x89\x4C\x24\x28\x85\xC9\x48\x8D\x05\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxx????");
-	
-		vector<uint8_t> _instShortcut
-		{ 
-			0xEB, 0x19, 
-			0x3C, 0x0B, 0x75, 0x02, 0xB0, 
-			0x88, 0x47, 0x01, 0xEB, 0xDC, 
-			0xCE, 
-			0xEB, 0xAA, 
-			0xEB, 0x4E, 0x90, 0x90, 
-			0x81, 0xCB, 0x00, 0x00, 0x24, 0x00, 
-			0x80, 0xF9, 0x15, 0x74, 0xF2, 
-			0xEB, 0x1B, 0x90, 0x90, 0x90, 0x90, 0x90, 
-			0x31, 0xC0, 0x48, 0x83, 0xC4, 0x28, 0xC3,
-			0xEB, 0x45, 0x90, 0x90, 
-			0x81, 0xC3, 0x00, 0x00, 0x20, 0x00, 0xEB, 0xB5, 
-			0x90, 0x90 
-		};
-
-		memcpy(_iconOffset + 0x1C, _iconOffset + 0x1D, 0x19);
-		memcpy(_iconOffset + 0x1A, _instShortcut.data(), 0x02);
-
-		memcpy(_iconOffset + 0x35, _instShortcut.data() + 0x02, 0x05);
-		memcpy(_iconOffset + 0x3A, _instShortcut.data() + 0x0C, 0x01);
-		memcpy(_iconOffset + 0x3B, _instShortcut.data() + 0x07, 0x05);
-
-		memcpy(_listOffset + 0x18E, _instShortcut.data() + 0x0D, 0x02);
-		memcpy(_listOffset + 0x138, _instShortcut.data() + 0x0F, 0x04);
-		memcpy(_listOffset + 0x188, _instShortcut.data() + 0x13, 0x06);
-
-		memcpy(_listOffset + 0x12C, _instShortcut.data() + 0x2C, 0x04);
-		memcpy(_listOffset + 0x173, _instShortcut.data() + 0x30, 0x08);
-
-		memcpy(_equipOffset + 0x33, _instShortcut.data() + 0x19, 0x05);
-		memcpy(_equipOffset + 0x16, _instShortcut.data() + 0x1E, 0x07);
-		memcpy(_equipOffset + 0x38, _instShortcut.data() + 0x25, 0x07);
-
-		memcpy(_categoryOffset + 0x4AF, _instShortcut.data() + 0x38, 0x02);
-
-		_instShortcut.clear();
 
 		// ======================================================== //
 
@@ -375,7 +327,7 @@ extern "C"
 
 		wchar_t search[MAX_PATH];
 		wcscpy(search, mod_path);
-		wcscat(search, L"\\dll\\modules\\ReFined-*.dll");
+		wcscat(search, L"\\dll\\modules\\ModuleRF-*.dll");
 
 		WIN32_FIND_DATAW find;
 		HANDLE fh = FindFirstFileW(search, &find);
@@ -385,7 +337,8 @@ extern "C"
 			do
 			{
 				wchar_t filepath[MAX_PATH];
-				wcscpy(filepath, L"\\dll\\modules\\");
+				wcscpy(filepath, mod_path);
+				wcscat(filepath, L"\\dll\\modules\\");
 				wcscat(filepath, find.cFileName);
 
 				HMODULE dllhandle = LoadLibraryW(filepath);
@@ -393,6 +346,26 @@ extern "C"
 				{
 					void (*funcInit)(const wchar_t*) = (void(*)(const wchar_t*))GetProcAddress(dllhandle, "RF_ModuleInit");
 					void (*funcExec)() = (void(*)())GetProcAddress(dllhandle, "RF_ModuleExecute");
+
+					uint32_t* (*checkIntro)() = (uint32_t *(*)())GetProcAddress(dllhandle, "RF_CheckIntro");
+					vector<uint32_t> _vectorIntro(0);
+
+					if (checkIntro)
+					{
+						auto _fetchIntro = checkIntro();
+						auto _sizeVector = 0x0C + 0x04 * (_fetchIntro[0] * 2);
+
+						_vectorIntro.resize(_sizeVector);
+						memcpy(_vectorIntro.data(), _fetchIntro, _sizeVector);
+
+						auto _newEntry = ReFined::IntroMenu::Entry(_vectorIntro.at(0), _vectorIntro.at(1), _vectorIntro.at(2), vector<uint32_t>(_vectorIntro.begin() + 3, _vectorIntro.begin() + 3 + _vectorIntro.at(0)), vector<uint32_t>(_vectorIntro.begin() + 3 + _vectorIntro.at(0), _vectorIntro.begin() + 3 + _vectorIntro.at(0) + _vectorIntro.at(0)));
+						ReFined::IntroMenu::Add(ReFined::IntroMenu::Children.size(), _newEntry);
+
+						bool** introSeek = (bool**)GetProcAddress(dllhandle, "INTRO_SEEK");
+
+						assert(introSeek != nullptr);
+						*introSeek = reinterpret_cast<bool*>(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x200 + ((ReFined::IntroMenu::Children.size() - 1) * 0x04));
+					}
 
 					if (funcInit)
 						moduleinit.push_back(funcInit);
@@ -412,23 +385,21 @@ extern "C"
 	__declspec(dllexport) void OnFrame()
 	{
 		ReFined::Demand::TriggerReset();
-		// ReFined::Demand::ShortcutSets();
-		// ReFined::Demand::EncounterPlus();
+		ReFined::Demand::ShortcutSets();
+		ReFined::Demand::EncounterPlus();
 
-		// ReFined::Critical::HandleCrown();
-		// ReFined::Critical::ProcessDeath();
-		// ReFined::Critical::RegisterMagic();
-		// ReFined::Critical::ShowInformation();
-		// ReFined::Critical::RegisterMovement();
-		// ReFined::Critical::RetryBattles();
+		ReFined::Critical::HandleCrown();
+		ReFined::Critical::ProcessDeath();
+		ReFined::Critical::RegisterMagic();
+		ReFined::Critical::ShowInformation();
+		ReFined::Critical::RegisterMovement();
+		ReFined::Critical::RetryBattles();
 
 		ReFined::Critical::HandleConfiguration();
 		ReFined::Critical::HandleIntro();
-		// ReFined::Critical::PrologueSkip();
 		ReFined::Critical::AspectCorrection();
 
 		ReFined::Continuous::DiscordRPC();
-		ReFined::Continuous::Autoattack();
 		ReFined::Continuous::HandleShake();
 		ReFined::Continuous::FixSummonBGM();
 		ReFined::Continuous::AutosaveLogic();
@@ -436,5 +407,8 @@ extern "C"
 		ReFined::Continuous::EnforcePrompts();
 		ReFined::Continuous::ActivateWarpGOA();
 		ReFined::Continuous::HandleFrameLimiter();
+
+		for (auto _module : moduleexec)
+			_module();
 	}
 }
