@@ -1,3 +1,8 @@
 /.vs
 /ReFined.KH2/x64
 /x64
+/ModuleRF-ShortcutForms/x64
+/ModuleRF-Autoattack/x64
+*.filters
+*.user
+/ModuleRF-PrologueSkip/x64
