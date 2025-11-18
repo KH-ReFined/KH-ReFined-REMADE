@@ -37,6 +37,7 @@ bool handled = false;
 vector<void(*)(const wchar_t*)> moduleinit;
 vector<void(*)()> moduleexec;
 
+bool DISCORD_ENABLED = true;
 
 uint16_t ReFined::Demand::RESET_COMBO = YS::HARDPAD::BUTTONS::NONE;
 
@@ -412,6 +413,7 @@ extern "C"
 			}
 		}
 
+		DISCORD_ENABLED = _configStruct["General"]["discordRPC"] == "true" ? true : false;
 	}
 
 	__declspec(dllexport) void OnFrame()
@@ -431,7 +433,9 @@ extern "C"
 		ReFined::Critical::HandleIntro();
 		ReFined::Critical::AspectCorrection();
 
-		ReFined::Continuous::DiscordRPC();
+		if (DISCORD_ENABLED)
+			ReFined::Continuous::DiscordRPC();
+		
 		ReFined::Continuous::HandleShake();
 		ReFined::Continuous::FixSummonBGM();
 		ReFined::Continuous::AutosaveLogic();
