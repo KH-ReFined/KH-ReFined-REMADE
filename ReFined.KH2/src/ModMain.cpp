@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+
 #include <cassert>
 
 #include <cstdio>
@@ -27,12 +28,17 @@
 #include "memory_manager.h"
 #include "weapon_entry.h"
 
+#include "ini.h"
+
 using namespace std;
 
 bool handled = false;
 
 vector<void(*)(const wchar_t*)> moduleinit;
 vector<void(*)()> moduleexec;
+
+
+uint16_t ReFined::Demand::RESET_COMBO = YS::HARDPAD::BUTTONS::NONE;
 
 extern "C"
 {
@@ -380,6 +386,32 @@ extern "C"
 
 		for (auto _execFunc : moduleinit)
 			_execFunc(mod_path);
+
+		mINI::INIFile _configFile("reFined.cfg");
+		mINI::INIStructure _configStruct;
+
+		_configFile.read(_configStruct);
+
+		auto _fetchButtons = _configStruct["General"]["resetCombo"];
+
+		if (_fetchButtons.find("NONE") == string::npos)
+		{
+			size_t _buttonPos = 0;
+			string _buttonToken;
+			string _tempStr = _fetchButtons;
+
+			while ((_buttonPos = _tempStr.find(" + ")) != string::npos)
+			{
+				_buttonToken = _tempStr.substr(0, _buttonPos);
+				_tempStr.erase(0, _buttonPos + 3);
+
+				ReFined::Demand::RESET_COMBO |= YS::HARDPAD::BUTTONS_MAP[_buttonToken];
+
+				if (_tempStr.find(" + ") == string::npos)
+					ReFined::Demand::RESET_COMBO |= YS::HARDPAD::BUTTONS_MAP[_tempStr];
+			}
+		}
+
 	}
 
 	__declspec(dllexport) void OnFrame()

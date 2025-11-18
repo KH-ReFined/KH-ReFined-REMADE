@@ -56,9 +56,6 @@ char* ITEM_SELECT_UPDATE = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6
 // TODO: Config implementation.
 void ReFined::Demand::TriggerReset()
 {
-	// Declare what buttons activate Soft-Reset.
-	uint16_t _seekButtons = YS::HARDPAD::BUTTONS::L2 | YS::HARDPAD::BUTTONS::R2;
-
 	// Fetch the input and whether a soft reset can happen.
 	auto _fetchButtons = *YS::HARDPAD::Input;
 	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
@@ -66,7 +63,7 @@ void ReFined::Demand::TriggerReset()
 	bool _canReset = _commandPointer != 0x00 && *YS::AREA::IsInMap && !*YS::TITLE::IsTitle && !*YS::MENU::IsMenu;
 
 	// If the buttons are pushed, a reset can happen and it isn't happening:
-	if (_fetchButtons == _seekButtons && _canReset && !IS_RESETING)
+	if (_fetchButtons == RESET_COMBO && _canReset && !IS_RESETING)
 	{
 		// Declare the reset is happening for timing purposes.
 		IS_RESETING = true;
