@@ -1,6 +1,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <map>
+#include <string>
+
+using namespace std;
 
 namespace YS
 {
@@ -12,6 +16,7 @@ namespace YS
 
 			enum BUTTONS : uint16_t
 			{
+				NONE = 0x0000,
 				SELECT = 0x0001,
 				L3 = 0x0002,
 				R3 = 0x0004,
@@ -29,6 +34,8 @@ namespace YS
 				CROSS = 0x4000,
 				SQUARE = 0x8000,
 			};
+
+			static map<string, uint16_t> BUTTONS_MAP;
 			
 			static uint16_t* Input;
 	};
