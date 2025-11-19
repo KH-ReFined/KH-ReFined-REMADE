@@ -41,7 +41,6 @@ namespace ReFined
 		static void ShowInformation();
 		static void ProcessDeath();
 		static void RetryBattles();
-		static void HandleCrown();
 		static void HandleConfiguration();
 		static void HandleIntro();
 		static void AspectCorrection();
