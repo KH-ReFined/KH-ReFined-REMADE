@@ -5,7 +5,7 @@ using namespace std;
 
 extern "C"
 {
-	__declspec(dllexport) void RE_ModuleInit(wchar_t* mod_path)
+	__declspec(dllexport) void RF_ModuleInit(wchar_t* mod_path)
 	{
 		char* _equipOffset = SignatureScan<char*>("\x48\x83\xEC\x28\xE8\x00\x00\x00\x00\x0F\xB6\x48\x02\x84\xC9\x74\x19", "xxxxx????xxxxxxxx");
 		char* _listOffset = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x57\x48\x83\xEC\x20\x33\xDB\x48\x89\x6C\x24\x30\x41\x8B\xF8\x48\x8B\xE9", "xxxxxxxxxxxxxxxxxxxxxxx");

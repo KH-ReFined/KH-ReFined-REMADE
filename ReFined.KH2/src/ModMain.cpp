@@ -420,9 +420,7 @@ extern "C"
 	{
 		ReFined::Demand::TriggerReset();
 		ReFined::Demand::ShortcutSets();
-		ReFined::Demand::EncounterPlus();
 
-		ReFined::Critical::HandleCrown();
 		ReFined::Critical::ProcessDeath();
 		ReFined::Critical::RegisterMagic();
 		ReFined::Critical::ShowInformation();

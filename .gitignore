@@ -6,3 +6,5 @@
 *.filters
 *.user
 /ModuleRF-PrologueSkip/x64
+/ModuleRF-EncounterPlus/x64
+/ModuleRF-CrownEngine/x64
