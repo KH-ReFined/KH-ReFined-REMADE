@@ -753,7 +753,7 @@ void ReFined::Critical::AspectCorrection()
 
 				for (auto _ptr : _listPos)
 				{
-					if (_ptr > moduleInfo.startAddr + 0x1A0000)
+					if (_ptr > moduleInfo.startAddr + 0x1B0000)
 						continue;
 
 					POSITIVE_ASPECT_BYTE.push_back(_ptr);
@@ -761,7 +761,7 @@ void ReFined::Critical::AspectCorrection()
 
 				for (auto _ptr : _listNeg)
 				{
-					if (_ptr > moduleInfo.startAddr + 0x1A0000)
+					if (_ptr > moduleInfo.startAddr + 0x1B0000)
 						continue;
 
 					NEGATIVE_ASPECT_BYTE.push_back(_ptr);

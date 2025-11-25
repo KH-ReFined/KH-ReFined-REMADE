@@ -10,7 +10,5 @@ namespace ReFined
 			static uint16_t RESET_COMBO;
 
 			static void TriggerReset();
-			static void ShortcutSets();
-			static void FormKeyLogic();
 	};
 }

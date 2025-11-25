@@ -53,7 +53,6 @@
     <ClInclude Include="include\kingdom\egs.h" />
     <ClInclude Include="include\kingdom\event.h" />
     <ClInclude Include="include\kingdom\file.h" />
-    <ClInclude Include="include\kingdom\framework.h" />
     <ClInclude Include="include\kingdom\friend.h" />
     <ClInclude Include="include\kingdom\gauge.h" />
     <ClInclude Include="include\kingdom\hardpad.h" />
@@ -81,6 +80,7 @@
     <ClInclude Include="include\kingdom\weapon_entry.h" />
     <ClInclude Include="include\kingdom\world.h" />
     <ClInclude Include="include\memory_manager.h" />
+    <ClInclude Include="include\ModMain.h" />
     <ClInclude Include="include\SigScan.h" />
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +146,9 @@
     <ClCompile Include="src\kingdom\world.cpp" />
     <ClCompile Include="src\memory_manager.cpp" />
     <ClCompile Include="src\ModMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DefineExports.def" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

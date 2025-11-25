@@ -1,13 +1,17 @@
 #pragma once
 
-#include <cstdint>
+#define DLL_EXPORT __declspec(dllexport)
 
-namespace ryj
+#include <cstdint>
+extern "C"
 {
-	class SHAKE
+	namespace ryj
 	{
-	public:
-		static float* ShakeTimer;
-		static short* ShakeCoords;
-	};
+		class DLL_EXPORT SHAKE
+		{
+		public:
+			static float* ShakeTimer;
+			static short* ShakeCoords;
+		};
+	}
 }

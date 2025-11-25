@@ -1,13 +1,17 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include "SigScan.h"
-
-namespace YS
+extern "C"
 {
-	class FRIEND
+	namespace YS
 	{
-	public:
-		static uint64_t pint_friend;
-	};
+		class DLL_EXPORT FRIEND
+		{
+		public:
+			static uint64_t pint_friend;
+		};
+	}
 }

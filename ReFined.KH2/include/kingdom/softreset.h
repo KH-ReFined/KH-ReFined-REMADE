@@ -1,15 +1,20 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
-
-namespace dk
+extern "C"
 {
-	class SOFTRESET
+	namespace dk
 	{
-	public:
-		using SoftResetThread_t = void(*)();
-		static SoftResetThread_t SoftResetThread;
+		class DLL_EXPORT SOFTRESET
+		{
+		public:
+			using SoftResetThread_t = void(*)();
+			static SoftResetThread_t SoftResetThread;
 
-		static bool* RESET;
-	};
+			static bool* RESET;
+		};
+	}
+
 }

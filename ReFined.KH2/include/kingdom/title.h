@@ -1,14 +1,21 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include <Windows.h>
-
-namespace YS
+extern "C"
 {
-	class TITLE
+	extern "C"
 	{
-		public:
-			static bool* IsTitle;
-			static uint8_t* IntroSelect;
-	};
+		namespace YS
+		{
+			class DLL_EXPORT TITLE
+			{
+			public:
+				static bool* IsTitle;
+				static uint8_t* IntroSelect;
+			};
+		}
+	}
 }

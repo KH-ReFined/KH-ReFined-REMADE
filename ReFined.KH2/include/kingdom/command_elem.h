@@ -1,14 +1,22 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include <Windows.h>
 
-namespace YS
+extern "C"
 {
-	class COMMAND_ELEM
+	namespace YS
 	{
-	public:
-		static char* ReactionID;
-		static uint64_t CommandElem;
-	};
+		class DLL_EXPORT COMMAND_ELEM
+		{
+		public:
+			using Get_t = char* (*)(uint64_t id);
+			static Get_t Get;
+
+			static char* ReactionID;
+			static uint64_t CommandElem;
+		};
+	}
 }

@@ -1,21 +1,25 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include <Windows.h>
 
-namespace YS
+extern "C"
 {
-	class AREA
+	namespace YS
 	{
+		class DLL_EXPORT  AREA
+		{
 		public:
-			struct SET
+			struct DLL_EXPORT  SET
 			{
 				uint16_t Map;
 				uint16_t Battle;
 				uint16_t Event;
 			};
 
-			struct INFO
+			struct DLL_EXPORT  INFO
 			{
 				uint8_t World;
 				uint8_t Room;
@@ -46,5 +50,6 @@ namespace YS
 			static char* IsVendor;
 
 			static uint64_t pint_enemyinfo;
-	};
+		};
+	}
 }

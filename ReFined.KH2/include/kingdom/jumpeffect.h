@@ -1,15 +1,19 @@
 #pragma once
 
-#include <stdint.h>
+#define DLL_EXPORT __declspec(dllexport)
 
-namespace dk
+#include <stdint.h>
+extern "C"
 {
-	class JUMPEFFECT
+	namespace dk
 	{
+		class DLL_EXPORT JUMPEFFECT
+		{
 		public:
 			using Out_t = void(*)(uint64_t effectType);
 			static Out_t Out;
 
 			static char* FadeStatus;
-	};
+		};
+	}
 }

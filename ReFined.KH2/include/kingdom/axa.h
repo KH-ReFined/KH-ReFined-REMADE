@@ -1,11 +1,16 @@
 #pragma once
 
-namespace PC
+#define DLL_EXPORT __declspec(dllexport)
+
+extern "C"
 {
-	class AXA
+	namespace PC
 	{
-	public:
-		using DebugPrint_t = void(*)(const char* string);
-		static DebugPrint_t DebugPrint;
-	};
+		class DLL_EXPORT AXA
+		{
+		public:
+			using DebugPrint_t = void(*)(const char* string);
+			static DebugPrint_t DebugPrint;
+		};
+	}
 }

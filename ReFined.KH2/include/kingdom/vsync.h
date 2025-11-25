@@ -1,13 +1,17 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include "SigScan.h"
-
-namespace dk
+extern "C"
 {
-	class VSYNC
+	namespace dk
 	{
-	public:
-		static bool* IsFrameLimited;
-	};
+		class DLL_EXPORT VSYNC
+		{
+		public:
+			static bool* IsFrameLimited;
+		};
+	}
 }

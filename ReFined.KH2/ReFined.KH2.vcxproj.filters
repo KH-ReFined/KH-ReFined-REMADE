@@ -66,9 +66,6 @@
     <ClInclude Include="include\kingdom\file.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
-    <ClInclude Include="include\kingdom\framework.h">
-      <Filter>Header Files\kingdom_internal</Filter>
-    </ClInclude>
     <ClInclude Include="include\kingdom\gauge.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
@@ -229,6 +226,9 @@
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
     <ClInclude Include="include\ini.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ModMain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -413,5 +413,10 @@
     <ClCompile Include="src\kingdom\item.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DefineExports.def">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

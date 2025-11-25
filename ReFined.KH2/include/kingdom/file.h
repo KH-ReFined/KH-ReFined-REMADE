@@ -1,16 +1,20 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
-
-namespace YS
+extern "C"
 {
-	class FILE
+	namespace YS
 	{
-	public:
-		using GetSize_t = size_t(*)(const char* fileName);
-		static GetSize_t GetSize;
+		class DLL_EXPORT FILE
+		{
+		public:
+			using GetSize_t = size_t(*)(const char* fileName);
+			static GetSize_t GetSize;
 
-		using LoadBAR_t = size_t(*)(const char* fileName, char* address);
-		static LoadBAR_t LoadBAR;
-	};
+			using LoadBAR_t = size_t(*)(const char* fileName, char* address);
+			static LoadBAR_t LoadBAR;
+		};
+	}
 }

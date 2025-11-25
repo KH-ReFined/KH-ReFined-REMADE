@@ -1,14 +1,18 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include "SigScan.h"
-
-namespace YS
+extern "C"
 {
-	class MEMBER_TABLE
+	namespace YS
 	{
-	public:
-		static char* MemberTable;
-		static char* MemberStatsAnchor;
-	};
+		class DLL_EXPORT MEMBER_TABLE
+		{
+		public:
+			static char* MemberTable;
+			static char* MemberStatsAnchor;
+		};
+	}
 }

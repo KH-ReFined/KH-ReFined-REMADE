@@ -1,11 +1,14 @@
 #pragma once
 
-#include "SigScan.h"
+#define DLL_EXPORT __declspec(dllexport)
 
-namespace YS
+#include "SigScan.h"
+extern "C"
 {
-	class ITEMPIC
+	namespace YS
 	{
+		class DLL_EXPORT ITEMPIC
+		{
 		public:
 			using ReadImage_t = void(__fastcall*)(int _image);
 			static ReadImage_t ReadImage;
@@ -13,5 +16,6 @@ namespace YS
 			static FreeImageData_t FreeImageData;
 
 			static char* ImageBuff;
-	};
+		};
+	}
 }

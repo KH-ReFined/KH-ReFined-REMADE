@@ -1,26 +1,30 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include <map>
 #include <sstream>
 #include <vector>
 
 using namespace std;
-
-namespace YS
+extern "C"
 {
-	class MESSAGE
+	namespace YS
 	{
-	public:
-		using GetData_t = const char*(*)(int id);
-		using GetSize_t = const size_t(*)(const char* message);
+		class DLL_EXPORT MESSAGE
+		{
+		public:
+			using GetData_t = const char* (*)(int id);
+			using GetSize_t = const size_t(*)(const char* message);
 
-		static GetData_t GetData;
-		static GetSize_t GetSize;
+			static GetData_t GetData;
+			static GetSize_t GetSize;
 
-		static char* SizeTable;
+			static char* SizeTable;
 
-		static string DecodeKHSCII(const char* Input);
-		static vector<char> EncodeKHSCII(string Input);
-	};
+			static string DecodeKHSCII(const char* Input);
+			static vector<char> EncodeKHSCII(string Input);
+		};
+	}
 }

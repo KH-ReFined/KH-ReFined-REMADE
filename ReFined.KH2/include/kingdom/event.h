@@ -1,12 +1,16 @@
 #pragma once
 
-#include <stdint.h>
+#define DLL_EXPORT __declspec(dllexport)
 
-namespace YS
+#include <stdint.h>
+extern "C"
 {
-	class EVENT
+	namespace YS
 	{
-	public:
-		static uint64_t pint_eventinfo;
-	};
+		class DLL_EXPORT EVENT
+		{
+		public:
+			static uint64_t pint_eventinfo;
+		};
+	}
 }

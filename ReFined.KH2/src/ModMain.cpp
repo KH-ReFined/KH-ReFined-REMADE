@@ -1,34 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <cassert>
-
-#include <cstdio>
-#include <Windows.h>
-#include <iostream>
-#include <fstream>
-#include <chrono>
-
-#include "information.h"
-#include "area.h"
-#include "gauge.h"
-#include "title.h"
-#include "steam.h"
-#include "party.h"
-#include "menu.h"
-#include "message.h"
-#include "softreset.h"
-
-#include "Demand.h"
-#include "Continuous.h"
-#include "Critical.h"
-#include "SigScan.h"
-#include "intro_menu.h"
-#include "config_menu.h"
-#include "continue_menu.h"
-#include "memory_manager.h"
-#include "weapon_entry.h"
-
-#include "ini.h"
+#include "ModMain.h"
 
 using namespace std;
 
@@ -39,7 +11,7 @@ vector<void(*)()> moduleexec;
 
 bool DISCORD_ENABLED = true;
 
-uint16_t ReFined::Demand::RESET_COMBO = YS::HARDPAD::BUTTONS::NONE;
+uint16_t ReFined::Demand::RESET_COMBO = YS::HARDPAD::BUTTONS::L2 | YS::HARDPAD::BUTTONS::R2 | YS::HARDPAD::BUTTONS::L1 | YS::HARDPAD::BUTTONS::R1;
 
 extern "C"
 {
@@ -388,6 +360,7 @@ extern "C"
 		for (auto _execFunc : moduleinit)
 			_execFunc(mod_path);
 
+		/*
 		mINI::INIFile _configFile("reFined.cfg");
 		mINI::INIStructure _configStruct;
 
@@ -414,12 +387,12 @@ extern "C"
 		}
 
 		DISCORD_ENABLED = _configStruct["General"]["discordRPC"] == "true" ? true : false;
+		*/
 	}
 
 	__declspec(dllexport) void OnFrame()
 	{
 		ReFined::Demand::TriggerReset();
-		ReFined::Demand::ShortcutSets();
 
 		ReFined::Critical::ProcessDeath();
 		ReFined::Critical::RegisterMagic();

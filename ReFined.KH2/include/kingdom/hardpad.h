@@ -1,20 +1,23 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <stdint.h>
 #include <map>
 #include <string>
 
 using namespace std;
-
-namespace YS
+extern "C"
 {
-	class HARDPAD
+	namespace YS
 	{
+		class DLL_EXPORT HARDPAD
+		{
 		public:
 			using Init_t = void(*)();
 			static Init_t Init;
 
-			enum BUTTONS : uint16_t
+			enum DLL_EXPORT BUTTONS : uint16_t
 			{
 				NONE = 0x0000,
 				SELECT = 0x0001,
@@ -36,7 +39,8 @@ namespace YS
 			};
 
 			static map<string, uint16_t> BUTTONS_MAP;
-			
+
 			static uint16_t* Input;
-	};
+		};
+	}
 }

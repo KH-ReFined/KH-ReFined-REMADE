@@ -1,14 +1,18 @@
 #pragma once
 
+#define DLL_EXPORT __declspec(dllexport)
+
 #include <cstdint>
 #include "SigScan.h"
-
-namespace YS
+extern "C"
 {
-	class MEMBER
+	namespace YS
 	{
-	public:
-		using PartToEntryID_t = uint32_t(*)(uint32_t);
-		static PartToEntryID_t PartToEntryID;
-	};
+		class DLL_EXPORT MEMBER
+		{
+		public:
+			using PartToEntryID_t = uint32_t(*)(uint32_t);
+			static PartToEntryID_t PartToEntryID;
+		};
+	}
 }
