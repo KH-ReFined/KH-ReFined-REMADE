@@ -8,3 +8,10 @@
 /ModuleRF-PrologueSkip/x64
 /ModuleRF-EncounterPlus/x64
 /ModuleRF-CrownEngine/x64
+*.tlog
+*.obj
+*.log
+*.pdb
+/ModuleRF-ShortcutSets/x64
+/ModuleRF-RetryBattles/x64/Release
+/ModuleRF-RetryBattles/x64

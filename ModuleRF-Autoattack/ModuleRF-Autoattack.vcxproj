@@ -111,6 +111,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -128,6 +129,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -136,25 +138,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="area.cpp" />
-    <ClCompile Include="command_draw.cpp" />
-    <ClCompile Include="command_elem.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="egs.cpp" />
-    <ClCompile Include="hardpad.cpp" />
-    <ClCompile Include="Module.cpp" />
-    <ClCompile Include="steam.cpp" />
-    <ClCompile Include="title.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="area.h" />
-    <ClInclude Include="command_draw.h" />
-    <ClInclude Include="command_elem.h" />
-    <ClInclude Include="egs.h" />
-    <ClInclude Include="hardpad.h" />
-    <ClInclude Include="SigScan.h" />
-    <ClInclude Include="steam.h" />
-    <ClInclude Include="title.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
