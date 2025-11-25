@@ -128,8 +128,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;MODULERFCROWNENGINE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
@@ -139,21 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="area.cpp" />
-    <ClCompile Include="cache_buff.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="gauge.cpp" />
-    <ClCompile Include="member_table.cpp" />
-    <ClCompile Include="Module.cpp" />
-    <ClCompile Include="title.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="area.h" />
-    <ClInclude Include="cache_buff.h" />
-    <ClInclude Include="gauge.h" />
-    <ClInclude Include="member_table.h" />
-    <ClInclude Include="SigScan.h" />
-    <ClInclude Include="title.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
