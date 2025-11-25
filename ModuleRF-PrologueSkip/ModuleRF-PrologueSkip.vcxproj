@@ -110,6 +110,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -127,6 +128,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp14</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -135,21 +137,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="area.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="event.cpp" />
-    <ClCompile Include="file.cpp" />
-    <ClCompile Include="member_table.cpp" />
-    <ClCompile Include="Module.cpp" />
-    <ClCompile Include="title.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="area.h" />
-    <ClInclude Include="event.h" />
-    <ClInclude Include="file.h" />
-    <ClInclude Include="member_table.h" />
-    <ClInclude Include="SigScan.h" />
-    <ClInclude Include="title.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
