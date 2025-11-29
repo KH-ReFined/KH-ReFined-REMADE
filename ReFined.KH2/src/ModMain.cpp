@@ -4,7 +4,9 @@
 
 using namespace std;
 
-bool handled = false;
+bool IS_INIT = false;
+
+wstring MOD_PATH;
 
 vector<void(*)(const wchar_t*)> moduleinit;
 vector<void(*)()> moduleexec;
@@ -17,6 +19,8 @@ extern "C"
 {
 	__declspec(dllexport) void OnInit(wchar_t* mod_path)
 	{			
+		MOD_PATH = wstring(mod_path);
+
 		auto _checkSteam = FindModule("steam_api64.dll");
 
 		if (_checkSteam)
@@ -357,8 +361,6 @@ extern "C"
 			FindClose(fh);
 		}
 
-		for (auto _execFunc : moduleinit)
-			_execFunc(mod_path);
 
 		/*
 		mINI::INIFile _configFile("reFined.cfg");
@@ -392,30 +394,45 @@ extern "C"
 
 	__declspec(dllexport) void OnFrame()
 	{
-		ReFined::Demand::TriggerReset();
+		if (!IS_INIT)
+		{
+			auto _fetchMessage = YS::MESSAGE::GetData(0x8ADC);
 
-		ReFined::Critical::ProcessDeath();
-		ReFined::Critical::RegisterMagic();
-		ReFined::Critical::ShowInformation();
-		ReFined::Critical::RegisterMovement();
-		ReFined::Critical::RetryBattles();
+			if (_fetchMessage != nullptr)
+				for (auto _execFunc : moduleinit)
+					_execFunc(MOD_PATH.c_str());
 
-		ReFined::Critical::HandleConfiguration();
-		ReFined::Critical::HandleIntro();
-		ReFined::Critical::AspectCorrection();
+			IS_INIT = true;
+		}
 
-		if (DISCORD_ENABLED)
-			ReFined::Continuous::DiscordRPC();
-		
-		ReFined::Continuous::HandleShake();
-		ReFined::Continuous::FixSummonBGM();
-		ReFined::Continuous::AutosaveLogic();
-		ReFined::Continuous::HandleSaveGlow();
-		ReFined::Continuous::EnforcePrompts();
-		ReFined::Continuous::ActivateWarpGOA();
-		ReFined::Continuous::HandleFrameLimiter();
 
-		for (auto _module : moduleexec)
-			_module();
+		else
+		{
+			ReFined::Demand::TriggerReset();
+
+			ReFined::Critical::ProcessDeath();
+			ReFined::Critical::RegisterMagic();
+			ReFined::Critical::ShowInformation();
+			ReFined::Critical::RegisterMovement();
+			ReFined::Critical::RetryBattles();
+
+			ReFined::Critical::HandleConfiguration();
+			ReFined::Critical::HandleIntro();
+			ReFined::Critical::AspectCorrection();
+
+			if (DISCORD_ENABLED)
+				ReFined::Continuous::DiscordRPC();
+
+			ReFined::Continuous::HandleShake();
+			ReFined::Continuous::FixSummonBGM();
+			ReFined::Continuous::AutosaveLogic();
+			ReFined::Continuous::HandleSaveGlow();
+			ReFined::Continuous::EnforcePrompts();
+			ReFined::Continuous::ActivateWarpGOA();
+			ReFined::Continuous::HandleFrameLimiter();
+
+			for (auto _module : moduleexec)
+				_module();
+		}
 	}
 }
