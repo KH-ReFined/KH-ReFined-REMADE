@@ -19,12 +19,13 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 {
     switch (ul_reason_for_call)
     {
-    case DLL_PROCESS_ATTACH:
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
+		case DLL_PROCESS_ATTACH:
+		case DLL_THREAD_ATTACH:
+		case DLL_THREAD_DETACH:
+		case DLL_PROCESS_DETACH:
+			break;
     }
+
     return TRUE;
 }
 
@@ -69,7 +70,7 @@ extern "C"
 			*(_saveData + 0x2544 + (_indexZero * 2)) = 0xF8;
 		}
 
-		if (!*_isInMap && _abilityActive && !ENCOUNTER_ACTIVE && _roomInfo != nullptr)
+		if (!*_isInMap && _abilityActive && !ENCOUNTER_ACTIVE && _roomInfoBase != 0x00)
 		{
 			char _fillZero[0x100];
 

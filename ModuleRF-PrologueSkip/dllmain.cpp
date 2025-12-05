@@ -8,10 +8,7 @@ using namespace std;
 uint8_t ROXAS_SKIP_STAGE;
 bool SKIPPING_ROXAS;
 
-using namespace std;
-
 HMODULE MAIN_HANDLE;
-bool ENCOUNTER_ACTIVE;
 
 BOOL APIENTRY DllMain(HMODULE hModule,
 	DWORD  ul_reason_for_call,

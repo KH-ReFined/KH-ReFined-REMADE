@@ -17,17 +17,6 @@ map<uint32_t, char*> MAGIC_FILES;
 
 vector<uint16_t> ABILITY_ARRAY;
 
-vector<uint8_t> INST_MAPJUMPTASK;
-vector<uint8_t> INST_CONTINUELOAD;
-
-vector<uint8_t> RETRY_STATE;
-
-bool HADES_ESCAPE;
-bool HADES_CHANGED;
-uint8_t HADES_ITERATOR = 0xFF;
-bool RETRY_BLACKLIST;
-uint8_t RETRY_MODE;
-
 bool INTRO_APPLIED;
 bool ENFORCE_INTRO;
 
@@ -54,12 +43,23 @@ char* INFORMATION_OFFSET = SignatureScan<char*>("\x41\xB8\x40\x00\x00\x00\xB9\xA
 
 bool SET_ADJUSTMENT;
 
+vector<uint8_t> INST_MAPJUMPTASK;
+vector<uint8_t> INST_CONTINUELOAD;
+
+vector<uint8_t> RETRY_STATE;
+
+bool HADES_ESCAPE;
+bool HADES_CHANGED;
+uint8_t HADES_ITERATOR = 0xFF;
+bool RETRY_BLACKLIST;
+uint8_t RETRY_MODE;
+
 ReFined::Continue::Entry RETRY_ENTRY(0x0002, 0x8AB1);
 ReFined::Continue::Entry PREPARE_ENTRY(0x0002, 0x5727);
 
 vector<char*> POSITIVE_ASPECT_SHORT;
 vector<char*> NEGATIVE_ASPECT_SHORT = MultiSignatureScan("\xC7\x00\x00\x00\xAB\xFF\xFF\xFF", "x???xxxx");
-vector<char*> POSITIVE_ASPECT_LONG = MultiSignatureScan("\xC7\x00\x00\x00\x00\x00\x55\x00\x00\x00", "x?????xxxx");
+vector<char*> POSITIVE_ASPECT_LONG;
 vector<char*> NEGATIVE_ASPECT_LONG = MultiSignatureScan("\xC7\x00\x00\x00\x00\x00\xAB\xFF\xFF\xFF", "x?????xxxx");
 
 vector<char*> POSITIVE_ASPECT_BYTE;
@@ -176,141 +176,11 @@ void ReFined::Critical::RegisterMagic()
 	}
 }
 
-// Handles the registration and activation of movement outside of menus.
-// Used *generally* with Rando, but can be used for other purposes by other mods.
-void ReFined::Critical::RegisterMovement()
-{
-	// Fetch the presence of Sora's Gauge [Edge Case for 100 Acre Woods minigames.]
-	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
-
-	// See if there is specifically a Cutscene playing.
-	auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
-
-	auto _fetchEvent = CalculatePointer(YS::EVENT::pint_eventinfo, { 0x04 });
-	bool _isCutscene = _fetchEvent != 0x00 && *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xCAFEEFAC &&
-		*reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xEFACCAFE;
-
-	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
-
-	// If the game is loaded:
-	if (*YS::AREA::IsInMap && _commandPointer != 0x00 && _soraGauge != 0x00 && !_isCutscene && _eventPointer == 0x00)
-	{
-		// If  the ability denotation is not initialized:
-		if (ABILITY_ARRAY.size() == 0x00)
-		{
-			// Resize the denotation to be 0x60 elements.
-			ABILITY_ARRAY.resize(0x60);
-
-			// Denote all of Sora's current abilities and sort them.
-			memcpy(ABILITY_ARRAY.data(), YS::AREA::SaveData + 0x2544, 0xC0);
-			sort(ABILITY_ARRAY.begin(), ABILITY_ARRAY.end());
-		}
-
-		// Create the vectors for current ability calculations.
-		vector<uint16_t> _abilityDiff;
-		vector<uint16_t> _currentAbility(0x60);
-
-		// Denote all of Sora's current abilities and sort them.
-		memcpy(_currentAbility.data(), YS::AREA::SaveData + 0x2544, 0xC0);
-		sort(_currentAbility.begin(), _currentAbility.end());
-
-		// Get all the abilities that differ between the old and current denotation.
-		set_difference(_currentAbility.begin(), _currentAbility.end(), ABILITY_ARRAY.begin(), ABILITY_ARRAY.end(), inserter(_abilityDiff, _abilityDiff.begin()));
-		
-		// Check if any of the different abilities contain movement.
-		bool _fetchMovement = any_of(_abilityDiff.begin(), _abilityDiff.end(), [](int x) {
-			return (x >= 0x805E && x <= 0x806D) || (x >= 0x8234 && x <= 0x8237) || (x == 0x0194 || x == 0x8194);
-			});
-
-		// If they do:
-		if (_fetchMovement)
-		{
-			// Refresh all of Sora's stats, which in turn, will commit all movement changes.
-			YS::SORA::RefreshAbilities(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308 + 0x1D0);
-		}
-
-		// Copy over the current ability list to the denotation array.
-		ABILITY_ARRAY.assign(_currentAbility.begin(), _currentAbility.end());
-	}
-}
-
-// Allows for manual pop-ups of the Information and Prize windows.
-// ENABLE LINE => 0x800000, TEXT INFO => 0x800004[0x100], TEXT PRIZE => 0x800104[0x20].
-// Used *generally* with Archipelago, but can be used for other purposes by other mods.
-void ReFined::Critical::ShowInformation()
-{
-	// Fetch the presence of Sora's Gauge [Edge Case for 100 Acre Woods minigames.]
-	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
-
-	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
-
-	// See if there is specifically a Cutscene playing.
-	auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
-
-	auto _fetchEvent = CalculatePointer(YS::EVENT::pint_eventinfo, { 0x04 });
-	bool _isCutscene = _eventPointer != nullptr && _fetchEvent != 0x00 && *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xCAFEEFAC &&
-																		  *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xEFACCAFE;
-
-	// If the game is loaded, and there isn't a menu present, and it's not a cutscene:
-	if (*YS::AREA::IsInMap && _commandPointer != 0x00 && !*YS::MENU::IsMenu && !_isCutscene && _soraGauge != 0x00 && _eventPointer == 0x00)
-	{
-		// Fetch the fade status and the enable line.
-		auto _fetchFade = *(dk::JUMPEFFECT::FadeStatus + 0x108);
-		auto _fetchEnable = moduleInfo.startAddr[0x800000];
-
-		// If there is no fade, and the enable line is set:
-		if (_fetchFade == 0x00 && _fetchEnable != 0x00)
-		{
-			// Reset the enable line.
-			*const_cast<char*>(moduleInfo.startAddr + 0x800000) = 0x00;
-
-			// If the enable line is 0x01, summon INFORMATION. If it's 0x02, summon PRIZE.
-			switch (_fetchEnable)
-			{
-				case 0x01:
-					dk::INFORMATION::openInformationWindow(moduleInfo.startAddr + 0x800004);
-					break;
-
-				case 0x02:
-					dk::TREASURE_INFO::openPrizeWindow(moduleInfo.startAddr + 0x800104);
-					break;
-
-				case 0x03:
-					dk::TREASURE_INFO::openBoxWindow(moduleInfo.startAddr + 0x800154, *reinterpret_cast<const uint16_t*>(moduleInfo.startAddr + 0x800150));
-			}
-		}
-	}
-}
-
-// Processes Sora's/Roxas' death when his HP is 0.
-void ReFined::Critical::ProcessDeath()
-{
-	// Fetch the presence of Sora's Gauge [Edge Case for 100 Acre Woods minigames.]
-	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
-
-	// Fetch Sora's pointer as well as his UCM.
-	auto _soraSelf = *reinterpret_cast<const uint64_t*>(YS::SORA::pint_sora);
-	auto _fetchSora = *reinterpret_cast<const uint16_t*>(YS::MEMBER_TABLE::MemberTable);
-
-	// If Sora's HP is 0, and he isn't Mermaid Sora, and his gauge is present, and he isn't dead:
-	if (*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308) == 0x00 && *YS::AREA::IsInMap && !*YS::MENU::IsMenu && (_fetchSora != 0x03BE && _fetchSora != 0x0656) && _soraGauge != 0x00 && !IS_DEAD)
-	{
-		// Process his death and mark it.
-		YS::SORA::AddHP(reinterpret_cast<char*>(_soraSelf), 0x00, 0x00, false);
-		IS_DEAD = true;
-	}
-
-	// If Sora's HP is NOT 0 but he is dead, mark him as not.
-	else if (*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308) != 0x00 && IS_DEAD)
-		IS_DEAD = false;
-}
-
-// Adds the ability to Retry battles in the game.
 void ReFined::Critical::RetryBattles()
 {
 	// Declare the worlds and rooms in which Retry **cannot** execute.
 	auto _checkBlacklist = (YS::AREA::Current->World == 0x04 && YS::AREA::Current->Room >= 0x15 && YS::AREA::Current->Room <= 0x1A) ||
-						   (YS::AREA::Current->World == 0x12 && ((YS::AREA::Current->Room >= 0x16 && YS::AREA::Current->Room <= 0x1C) || YS::AREA::Current->Room == 0x14));
+		(YS::AREA::Current->World == 0x12 && ((YS::AREA::Current->Room >= 0x16 && YS::AREA::Current->Room <= 0x1C) || YS::AREA::Current->Room == 0x14));
 
 	// If the arrays are not yet initialize, initialize them.
 	if (INST_MAPJUMPTASK.size() == 0x00)
@@ -498,6 +368,136 @@ void ReFined::Critical::RetryBattles()
 		}
 	}
 }
+
+// Handles the registration and activation of movement outside of menus.
+// Used *generally* with Rando, but can be used for other purposes by other mods.
+void ReFined::Critical::RegisterMovement()
+{
+	// Fetch the presence of Sora's Gauge [Edge Case for 100 Acre Woods minigames.]
+	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
+
+	// See if there is specifically a Cutscene playing.
+	auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
+
+	auto _fetchEvent = CalculatePointer(YS::EVENT::pint_eventinfo, { 0x04 });
+	bool _isCutscene = _fetchEvent != 0x00 && *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xCAFEEFAC &&
+		*reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xEFACCAFE;
+
+	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
+
+	// If the game is loaded:
+	if (*YS::AREA::IsInMap && _commandPointer != 0x00 && _soraGauge != 0x00 && !_isCutscene && _eventPointer == 0x00)
+	{
+		// If  the ability denotation is not initialized:
+		if (ABILITY_ARRAY.size() == 0x00)
+		{
+			// Resize the denotation to be 0x60 elements.
+			ABILITY_ARRAY.resize(0x60);
+
+			// Denote all of Sora's current abilities and sort them.
+			memcpy(ABILITY_ARRAY.data(), YS::AREA::SaveData + 0x2544, 0xC0);
+			sort(ABILITY_ARRAY.begin(), ABILITY_ARRAY.end());
+		}
+
+		// Create the vectors for current ability calculations.
+		vector<uint16_t> _abilityDiff;
+		vector<uint16_t> _currentAbility(0x60);
+
+		// Denote all of Sora's current abilities and sort them.
+		memcpy(_currentAbility.data(), YS::AREA::SaveData + 0x2544, 0xC0);
+		sort(_currentAbility.begin(), _currentAbility.end());
+
+		// Get all the abilities that differ between the old and current denotation.
+		set_difference(_currentAbility.begin(), _currentAbility.end(), ABILITY_ARRAY.begin(), ABILITY_ARRAY.end(), inserter(_abilityDiff, _abilityDiff.begin()));
+		
+		// Check if any of the different abilities contain movement.
+		bool _fetchMovement = any_of(_abilityDiff.begin(), _abilityDiff.end(), [](int x) {
+			return (x >= 0x805E && x <= 0x806D) || (x >= 0x8234 && x <= 0x8237) || (x == 0x0194 || x == 0x8194);
+			});
+
+		// If they do:
+		if (_fetchMovement)
+		{
+			// Refresh all of Sora's stats, which in turn, will commit all movement changes.
+			YS::SORA::RefreshAbilities(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308 + 0x1D0);
+		}
+
+		// Copy over the current ability list to the denotation array.
+		ABILITY_ARRAY.assign(_currentAbility.begin(), _currentAbility.end());
+	}
+}
+
+// Allows for manual pop-ups of the Information and Prize windows.
+// ENABLE LINE => 0x800000, TEXT INFO => 0x800004[0x100], TEXT PRIZE => 0x800104[0x20].
+// Used *generally* with Archipelago, but can be used for other purposes by other mods.
+void ReFined::Critical::ShowInformation()
+{
+	// Fetch the presence of Sora's Gauge [Edge Case for 100 Acre Woods minigames.]
+	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
+
+	auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
+
+	// See if there is specifically a Cutscene playing.
+	auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
+
+	auto _fetchEvent = CalculatePointer(YS::EVENT::pint_eventinfo, { 0x04 });
+	bool _isCutscene = _eventPointer != nullptr && _fetchEvent != 0x00 && *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xCAFEEFAC &&
+																		  *reinterpret_cast<const uint32_t*>(_fetchEvent) != 0xEFACCAFE;
+
+	// If the game is loaded, and there isn't a menu present, and it's not a cutscene:
+	if (*YS::AREA::IsInMap && _commandPointer != 0x00 && !*YS::MENU::IsMenu && !_isCutscene && _soraGauge != 0x00 && _eventPointer == 0x00)
+	{
+		// Fetch the fade status and the enable line.
+		auto _fetchFade = *(dk::JUMPEFFECT::FadeStatus + 0x108);
+		auto _fetchEnable = moduleInfo.startAddr[0x800000];
+
+		// If there is no fade, and the enable line is set:
+		if (_fetchFade == 0x00 && _fetchEnable != 0x00)
+		{
+			// Reset the enable line.
+			*const_cast<char*>(moduleInfo.startAddr + 0x800000) = 0x00;
+
+			// If the enable line is 0x01, summon INFORMATION. If it's 0x02, summon PRIZE.
+			switch (_fetchEnable)
+			{
+				case 0x01:
+					dk::INFORMATION::openInformationWindow(moduleInfo.startAddr + 0x800004);
+					break;
+
+				case 0x02:
+					dk::TREASURE_INFO::openPrizeWindow(moduleInfo.startAddr + 0x800104);
+					break;
+
+				case 0x03:
+					dk::TREASURE_INFO::openBoxWindow(moduleInfo.startAddr + 0x800154, *reinterpret_cast<const uint16_t*>(moduleInfo.startAddr + 0x800150));
+			}
+		}
+	}
+}
+
+// Processes Sora's/Roxas' death when his HP is 0.
+void ReFined::Critical::ProcessDeath()
+{
+	// Fetch the presence of Sora's Gauge [Edge Case for 100 Acre Woods minigames.]
+	auto _soraGauge = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88, 0x00 });
+
+	// Fetch Sora's pointer as well as his UCM.
+	auto _soraSelf = *reinterpret_cast<const uint64_t*>(YS::SORA::pint_sora);
+	auto _fetchSora = *reinterpret_cast<const uint16_t*>(YS::MEMBER_TABLE::MemberTable);
+
+	// If Sora's HP is 0, and he isn't Mermaid Sora, and his gauge is present, and he isn't dead:
+	if (*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308) == 0x00 && *YS::AREA::IsInMap && !*YS::MENU::IsMenu && (_fetchSora != 0x03BE && _fetchSora != 0x0656) && _soraGauge != 0x00 && !IS_DEAD)
+	{
+		// Process his death and mark it.
+		YS::SORA::AddHP(reinterpret_cast<char*>(_soraSelf), 0x00, 0x00, false);
+		IS_DEAD = true;
+	}
+
+	// If Sora's HP is NOT 0 but he is dead, mark him as not.
+	else if (*(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308) != 0x00 && IS_DEAD)
+		IS_DEAD = false;
+}
+
 
 void ReFined::Critical::HandleConfiguration()
 {
@@ -703,7 +703,7 @@ void ReFined::Critical::AspectCorrection()
 		uint32_t _offsetPositive = 0x55;
 		uint32_t _offsetNegative = 0xFFFFFFAB;
 
-		short _offsetInformation = -1;
+		uint16_t _offsetInformation = 0xFFFF;
 
 		auto _tempWidth = _resolutionHorizontal;
 		auto _tempHeight = _resolutionVertical;
@@ -738,30 +738,36 @@ void ReFined::Critical::AspectCorrection()
 		_offsetPositive = ceilf(0.177F * (_widthCalc - 1440));
 		_offsetNegative = _offsetPositive * -1;
 
-		if (_ratioNum != 16)
-			_offsetInformation = floorf(-0.11 * (_widthCalc - 1440));
+		_offsetInformation = 0xFFFFU - floorf((((_widthCalc - 1440) - 480) * 0.1780F));
 
 		if (POSITIVE_ASPECT_BYTE.size() == 0x00)
 		{
-			for (int i = 0xB8; i < 0xC0; i++)
+			for (int i = 0xB0; i < 0xC0; i++)
 			{
 				stringstream stream;
 				stream << char(i);
 
 				auto _listPos = MultiSignatureScan(stream.str().append("\x55\x00\x00\x00").c_str(), "xxxxx");
-				auto _listNeg = MultiSignatureScan(stream.str().append("\xAB\xFF\xFF\xFF").c_str(), "xxxxx");
 
 				for (auto _ptr : _listPos)
 				{
-					if (_ptr > moduleInfo.startAddr + 0x1B0000)
+					if (_ptr > moduleInfo.startAddr + 0x1E0000)
 						continue;
 
 					POSITIVE_ASPECT_BYTE.push_back(_ptr);
 				}
+			}
+
+			for (int i = 0xB0; i < 0xC0; i++)
+			{
+				stringstream stream;
+				stream << char(i);
+
+				auto _listNeg = MultiSignatureScan(stream.str().append("\xAB\xFF\xFF\xFF").c_str(), "xxxxx");
 
 				for (auto _ptr : _listNeg)
 				{
-					if (_ptr > moduleInfo.startAddr + 0x1B0000)
+					if (_ptr > moduleInfo.startAddr + 0x1E0000)
 						continue;
 
 					NEGATIVE_ASPECT_BYTE.push_back(_ptr);
@@ -769,25 +775,34 @@ void ReFined::Critical::AspectCorrection()
 			}
 		}
 
-		if (POSITIVE_ASPECT_BYTE.size() == 0x00)
+		if (POSITIVE_ASPECT_SHORT.size() == 0x00)
 		{
-			for (int i = 0xB8; i < 0xC0; i++)
+			auto _listPos = MultiSignatureScan("\xC7\x00\x00\x00\x55\x00\x00\x00", "x???xxxx");
+
+			for (auto _ptr : _listPos)
 			{
-				stringstream stream;
-				stream << char(i);
+				if (_ptr > moduleInfo.startAddr + 0x1E0000)
+					continue;
 
-				auto _listPos = MultiSignatureScan("\xC7\x00\x00\x00\x55\x00\x00\x00", "x???xxxx");
-
-				for (auto _ptr : _listPos)
-				{
-					if (_ptr > moduleInfo.startAddr + 0x185000)
-						continue;
-
-					POSITIVE_ASPECT_SHORT.push_back(_ptr);
-				}
+				POSITIVE_ASPECT_SHORT.push_back(_ptr);
 			}
 		}
 
+		if (POSITIVE_ASPECT_LONG.size() == 0x00)
+		{
+			auto _listPos = MultiSignatureScan("\xC7\x00\x00\x00\x00\x00\x55\x00\x00\x00", "x?????xxxx");
+
+			for (auto _ptr : _listPos)
+			{
+				if (_ptr > moduleInfo.startAddr + 0x1E0000)
+					continue;
+
+				POSITIVE_ASPECT_LONG.push_back(_ptr);
+			}
+		}
+
+		for (int i = 0; i < POSITIVE_ASPECT_SHORT.size(); i++)
+			memcpy(POSITIVE_ASPECT_SHORT[i] + 0x04, &_offsetPositive, 0x04);
 		for (int i = 0; i < NEGATIVE_ASPECT_SHORT.size(); i++)
 			memcpy(NEGATIVE_ASPECT_SHORT[i] + 0x04, &_offsetNegative, 0x04);
 

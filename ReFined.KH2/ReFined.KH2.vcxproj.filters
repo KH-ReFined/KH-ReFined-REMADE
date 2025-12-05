@@ -414,9 +414,4 @@
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="DefineExports.def">
-      <Filter>Source Files</Filter>
-    </None>
-  </ItemGroup>
 </Project>

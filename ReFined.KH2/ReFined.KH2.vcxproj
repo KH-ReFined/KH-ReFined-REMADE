@@ -147,9 +147,6 @@
     <ClCompile Include="src\memory_manager.cpp" />
     <ClCompile Include="src\ModMain.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="DefineExports.def" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

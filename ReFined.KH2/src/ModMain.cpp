@@ -361,7 +361,6 @@ extern "C"
 			FindClose(fh);
 		}
 
-
 		/*
 		mINI::INIFile _configFile("reFined.cfg");
 		mINI::INIStructure _configStruct;
