@@ -12,6 +12,7 @@ namespace ReFined
 			static void ActivateWarpGOA();
 			static void HandleFrameLimiter();
 			static void HandleSaveGlow();
+			static void ShowFormEXP();
 			static void HandleShake();
 	};
 }

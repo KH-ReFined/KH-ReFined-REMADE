@@ -9,6 +9,9 @@ extern "C"
 		public:
 			using openInformationWindow_t = void(*)(const char* message);
 			static openInformationWindow_t openInformationWindow;
+
+			using openGetMunny_t = void(*)(int munny);
+			static openGetMunny_t openGetMunny;
 		};
 	}
 }

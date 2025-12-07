@@ -231,6 +231,9 @@
     <ClInclude Include="include\ModMain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\kingdom\form_level.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\discord\activity_manager.cpp">
@@ -411,6 +414,9 @@
       <Filter>Header Files\kingdom_internal</Filter>
     </ClCompile>
     <ClCompile Include="src\kingdom\item.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\form_level.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>

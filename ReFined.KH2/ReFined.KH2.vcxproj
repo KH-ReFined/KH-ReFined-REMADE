@@ -53,6 +53,7 @@
     <ClInclude Include="include\kingdom\egs.h" />
     <ClInclude Include="include\kingdom\event.h" />
     <ClInclude Include="include\kingdom\file.h" />
+    <ClInclude Include="include\kingdom\form_level.h" />
     <ClInclude Include="include\kingdom\friend.h" />
     <ClInclude Include="include\kingdom\gauge.h" />
     <ClInclude Include="include\kingdom\hardpad.h" />
@@ -117,6 +118,7 @@
     <ClCompile Include="src\kingdom\egs.cpp" />
     <ClCompile Include="src\kingdom\event.cpp" />
     <ClCompile Include="src\kingdom\file.cpp" />
+    <ClCompile Include="src\kingdom\form_level.cpp" />
     <ClCompile Include="src\kingdom\friend.cpp" />
     <ClCompile Include="src\kingdom\gauge.cpp" />
     <ClCompile Include="src\kingdom\hardpad.cpp" />

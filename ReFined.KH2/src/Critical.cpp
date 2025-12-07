@@ -38,7 +38,7 @@ char* CAMPINIT_OFFSET = SignatureScan<char*>("\x66\x44\x89\x35\x00\x00\x00\x00\x
 vector <uint8_t> INST_CAMPBITWISE;
 vector <uint8_t> INST_CAMPINIT;
 
-char* MENUSELECT_OFFSET = SignatureScan<char*>("\x40\x55\x53\x48\x8D\x6C\x24\xB1\x48\x81\xEC\x98\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxx0000");
+char* MENUSELECT_OFFSET = SignatureScan<char*>("\x40\x55\x53\x48\x8D\x6C\x24\xB1\x48\x81\xEC\x98\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxx????");
 char* INFORMATION_OFFSET = SignatureScan<char*>("\x41\xB8\x40\x00\x00\x00\xB9\xAA\x00\x00\x00\x66\x2B\xC1\x66\x44\x89\x44\x24\x20\x44\x0F\xB7\x43\x2C\x48\x8D\x8B\x60\x02\x00\x00\x44\x0F\xB7\xC8\x33\xD2", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 bool SET_ADJUSTMENT;
@@ -583,7 +583,6 @@ void ReFined::Critical::HandleConfiguration()
 						memcpy(const_cast<char*>(_pointCurrent), &_indexCalcuation, 0x01);
 					}
 
-					Tz::CmConfig::UpdateList();
 					Tz::CmConfig::UpdateActive();
 
 					memcpy(MENUSELECT_OFFSET + 0x46, _menuSelectInst, 0x04);
