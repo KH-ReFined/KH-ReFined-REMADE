@@ -401,6 +401,51 @@ extern "C"
 				for (auto _execFunc : moduleinit)
 					_execFunc(MOD_PATH.c_str());
 
+			char* _fetchFirstShopface = SignatureScan<char*>("\x40\x56\x48\x81\xEC\xC0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\xA0\x00\x00\x00\x48\x8B\x0D\x00\x00\x00\x00\x33\xF6\xE8\x00\x00\x00\x00", "xxxxxxxxxxxx????xxxxxxxxxxxxxx????xxx????");
+			char* _fetchSecondShopface = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xDA\x8B\xF9\x48\x8B\xCB\x48\x8D\x15\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxx????x????");
+			char* _fetchThirdShopface = SignatureScan<char*>("\x40\x57\x48\x81\xEC\xB0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\xA0\x00\x00\x00\x48\x8B\x0D\x00\x00\x00\x00\x33\xFF\xE8\x00\x00\x00\x00", "xxxxxxxxxxxx????xxxxxxxxxxxxxx????xxx????");
+
+			auto _fetchShopface = YS::FILE::GetSize("00shopface.bin");
+
+			if (_fetchShopface != 0x00)
+			{
+				char* _allocShopface = (char*)malloc(_fetchShopface);
+				auto _readShopface = YS::FILE::Read("00shopface.bin", _allocShopface);
+
+				if (_readShopface != 0x00)
+				{
+					uint8_t _faceCount = *_allocShopface;
+
+					ReFined::MemoryManager::Allocate("SHOPFACE_NAMES", 0x10 * _faceCount);
+					ReFined::MemoryManager::Allocate("SHOPFACE_STRUCTS", 0x10 * _faceCount);
+
+					for (int i = 0; i < _faceCount; i++)
+					{
+						auto _objectID = *reinterpret_cast<uint16_t*>(_allocShopface + 0x10 + (0x10 * i));
+						char _faceName[0x0E];
+
+						memcpy(_faceName, _allocShopface + 0x02 + 0x10 + (0x10 * i), 0x0E);
+
+						auto _calculateNameAddr = reinterpret_cast<uint64_t>(ReFined::MemoryManager::Fetch("SHOPFACE_NAMES") + 0x10 * i);
+
+						memcpy(ReFined::MemoryManager::Fetch("SHOPFACE_STRUCTS") + 0x10 * i, &_objectID, 0x02);
+						memcpy(ReFined::MemoryManager::Fetch("SHOPFACE_STRUCTS") + (0x10 * i) + 0x08, &_calculateNameAddr, 0x08);
+
+						memcpy(ReFined::MemoryManager::Fetch("SHOPFACE_NAMES") + 0x10 * i, _faceName, 0x0E);
+					}
+
+					char* _structOffset = reinterpret_cast<char*>(ReFined::MemoryManager::Fetch("SHOPFACE_STRUCTS"));
+
+					RedirectLEA(_fetchFirstShopface + 0x53, _structOffset);
+					RedirectLEA(_fetchThirdShopface + 0x50, _structOffset);
+					RedirectLEA(_fetchSecondShopface + 0x28, _structOffset);
+
+					RedirectLEA(_fetchFirstShopface + 0x62, _structOffset + 0x08);
+					RedirectLEA(_fetchThirdShopface + 0x41, _structOffset + 0x08);
+					RedirectLEA(_fetchSecondShopface + 0x83, _structOffset + 0x08);
+				}
+			}
+
 			IS_INIT = true;
 		}
 
