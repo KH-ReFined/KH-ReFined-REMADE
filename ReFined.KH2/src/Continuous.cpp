@@ -39,6 +39,8 @@ bool SYSTEM_LOADED = false;
 bool SAVE_INITIATE = false;
 bool SYSTEM_WRITTEN = false;
 
+bool ROUND_BACK = false;
+
 YS::AREA::INFO SAVE_AREA;
 int SAVE_ITERATOR = 0;
 
@@ -188,7 +190,7 @@ void ReFined::Continuous::AutosaveLogic()
 			{
 				SAVE_ITERATOR++;
 
-				if (SAVE_ITERATOR == 0x03)
+				if (SAVE_ITERATOR == ROOM_AMOUNT)
 				{
 					SAVE_INITIATE = true;
 					SAVE_ITERATOR = 0;
@@ -201,8 +203,17 @@ void ReFined::Continuous::AutosaveLogic()
 
 	if (SAVE_INITIATE)
 	{
-		const char* _saveName = "BISLPM-66675FM-98";
+		auto _saveOffset = SAVE_SLOT_OFFSET;
+
+		START_FUNC:
+
+		ostringstream _stringStream;
+		_stringStream << setw(2) << setfill('0') << (_saveOffset - 1);
+
+		string _saveName = "BISLPM-66675FM-" + _stringStream.str();
 		const char* _saveHeader = "KH2J";
+
+		vector<string> _usedSlots;
 
 		char* _saveFilePath = const_cast<char*>(CalculatePointer(_savePointer, { 0x40 }));
 		string _saveFileString(_saveFilePath);
@@ -223,17 +234,64 @@ void ReFined::Continuous::AutosaveLogic()
 		uint32_t _saveInfoStartFILE = 0x1C8;
 		uint32_t _saveDataStartFILE = 0x19690;
 
-		const char* _saveInfoStartRAM = CalculatePointer(_savePointer, { 0x10, 0x168 });
-		const char* _saveDataStartRAM = CalculatePointer(_savePointer, { 0x10, 0x19630 });
+		char* _saveInfoStartRAM = CalculatePointer(_savePointer, { 0x10, 0x168 });
+		char* _saveDataStartRAM = CalculatePointer(_savePointer, { 0x10, 0x19630 });
 
 		memcpy(YS::AREA::SaveData + 0x10, &_autoSaveTag, 0x04);
 
 		const char* _saveSlotRAM = _saveInfoStartRAM + (_saveInfoLength * _saveSlot);
 
-		while (_saveSlotRAM[0] != 0x00 && strcmp(_saveSlotRAM, _saveName) != 0x00)
+		for (int i = 0; i < 99; i++)
+			if (*(_saveInfoStartRAM + (_saveInfoLength * i)) != 0x00)
+				_usedSlots.push_back(string(_saveInfoStartRAM + (_saveInfoLength * i)));
+
+		while (_saveSlotRAM[0] != 0x00 && strcmp(_saveSlotRAM, _saveName.c_str()) != 0x00)
 		{
 			_saveSlot++;
 			_saveSlotRAM = _saveInfoStartRAM + (_saveInfoLength * _saveSlot);
+		}
+
+		auto _fetchCheck = *reinterpret_cast<uint32_t*>(_saveDataStartRAM + (_saveDataLength * _saveSlot) + 0x10);
+
+		while (_fetchCheck != _autoSaveTag && _saveSlotRAM[0] != 0x00)
+		{
+			_saveSlot++;
+			_saveSlotRAM = _saveInfoStartRAM + (_saveInfoLength * _saveSlot);
+			_fetchCheck = *reinterpret_cast<uint32_t*>(_saveDataStartRAM + (_saveDataLength * _saveSlot) + 0x10);
+
+			while (find(_usedSlots.begin(), _usedSlots.end(), _saveName) != _usedSlots.end())
+			{
+				_saveOffset--;
+
+				if (_saveOffset == 0x00)
+				{
+					if (!ROUND_BACK)
+					{
+						_saveOffset = 99;
+						ROUND_BACK = true;
+					}
+
+					else
+					{
+						const char* _unableMessage = YS::MESSAGE::GetData(0x5703);
+						dk::INFORMATION::openInformationWindow(_unableMessage);
+						ROUND_BACK = false;
+						return;
+					}
+				}
+
+				_stringStream.str("");
+				_stringStream << setw(2) << setfill('0') << (_saveOffset - 1);
+
+				_saveName = "BISLPM-66675FM-" + _stringStream.str();
+			}
+
+			if (_saveSlot >= 99)
+			{
+				const char* _unableMessage = YS::MESSAGE::GetData(0x5703);
+				dk::INFORMATION::openInformationWindow(_unableMessage);
+				return;
+			}
 		}
 
 		char* _magicData = (char*)malloc(0x08);
@@ -255,10 +313,10 @@ void ReFined::Continuous::AutosaveLogic()
 		auto _magicChecksum = _calculateChecksum(0xFFFFFFFF, _magicData, 0x08);
 		auto _dataChecksum = _calculateChecksum(_magicChecksum ^ 0xFFFFFFFF, _saveData, 0x10FB4);
 
-		char* _saveInfoAddrRAM = const_cast<char*>(_saveInfoStartRAM) + (_saveInfoLength * _saveSlot);
-		char* _saveDataAddrRAM = const_cast<char*>(_saveDataStartRAM) + (_saveDataLength * _saveSlot);
+		char* _saveInfoAddrRAM = _saveInfoStartRAM + (_saveInfoLength * _saveSlot);
+		char* _saveDataAddrRAM = _saveDataStartRAM + (_saveDataLength * _saveSlot);
 
-		memcpy(_saveInfoAddrRAM, _saveName, 0x11);
+		memcpy(_saveInfoAddrRAM, _saveName.c_str(), 0x11);
 
 		memcpy(_saveInfoAddrRAM + 0x40, &_unixTime, 4);
 		memcpy(_saveInfoAddrRAM + 0x48, &_unixTime, 4);
@@ -280,7 +338,7 @@ void ReFined::Continuous::AutosaveLogic()
 		ofstream _stream(_saveFileString, ios::in | ios::out | ios::binary);
 
 		_stream.seekp(_saveInfoAddr);
-		_stream.write(_saveName, 0x11);
+		_stream.write(_saveName.c_str(), 0x11);
 
 		_stream.seekp(_saveInfoAddr + 0x40);
 		_stream.write(reinterpret_cast<const char*>(&_unixTime), 0x04);

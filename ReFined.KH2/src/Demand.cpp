@@ -47,7 +47,7 @@ void ReFined::Demand::TriggerReset()
 	bool _canReset = _commandPointer != 0x00 && *YS::AREA::IsInMap && !*YS::TITLE::IsTitle && !*YS::MENU::IsMenu && RESET_COMBO != 0x00;
 
 	// If the buttons are pushed, a reset can happen and it isn't happening:
-	if (_fetchButtons == RESET_COMBO && _canReset && !IS_RESETING)
+	if (RESET_COMBO != YS::HARDPAD::BUTTONS::NONE && _fetchButtons == RESET_COMBO && _canReset && !IS_RESETING)
 	{
 		// Declare the reset is happening for timing purposes.
 		IS_RESETING = true;

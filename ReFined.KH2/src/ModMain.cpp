@@ -13,7 +13,10 @@ vector<void(*)()> moduleexec;
 
 bool DISCORD_ENABLED = true;
 
-uint16_t ReFined::Demand::RESET_COMBO = YS::HARDPAD::BUTTONS::L2 | YS::HARDPAD::BUTTONS::R2 | YS::HARDPAD::BUTTONS::L1 | YS::HARDPAD::BUTTONS::R1;
+uint16_t ReFined::Demand::RESET_COMBO = YS::HARDPAD::BUTTONS::NONE;
+
+uint8_t ReFined::Continuous::ROOM_AMOUNT = 3;
+uint8_t ReFined::Continuous::SAVE_SLOT_OFFSET = 99;
 
 extern "C"
 {
@@ -361,8 +364,12 @@ extern "C"
 			FindClose(fh);
 		}
 
-		/*
-		mINI::INIFile _configFile("reFined.cfg");
+		wchar_t _configPath[MAX_PATH];
+		wcscpy(_configPath, mod_path);
+		wcscat(_configPath, L"\\dll\\reFined.cfg");
+		auto _wideStr = wstring(_configPath);
+
+		mINI::INIFile _configFile(string(_wideStr.begin(), _wideStr.end()));
 		mINI::INIStructure _configStruct;
 
 		_configFile.read(_configStruct);
@@ -380,6 +387,8 @@ extern "C"
 				_buttonToken = _tempStr.substr(0, _buttonPos);
 				_tempStr.erase(0, _buttonPos + 3);
 
+				transform(_buttonToken.begin(), _buttonToken.end(), _buttonToken.begin(), ::toupper);
+
 				ReFined::Demand::RESET_COMBO |= YS::HARDPAD::BUTTONS_MAP[_buttonToken];
 
 				if (_tempStr.find(" + ") == string::npos)
@@ -388,7 +397,12 @@ extern "C"
 		}
 
 		DISCORD_ENABLED = _configStruct["General"]["discordRPC"] == "true" ? true : false;
-		*/
+
+		ReFined::Continuous::ROOM_AMOUNT = atoi(_configStruct["General"]["saveRoomAmount"].c_str());
+		ReFined::Continuous::SAVE_SLOT_OFFSET = atoi(_configStruct["General"]["saveSlot"].c_str());
+
+		if (ReFined::Continuous::ROOM_AMOUNT == 0x00)
+			ReFined::Continuous::ROOM_AMOUNT = 1;
 	}
 
 	__declspec(dllexport) void OnFrame()
