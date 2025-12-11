@@ -21,6 +21,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ModuleRF-EncounterPlus", "M
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ModuleRF-ShortcutSets", "ModuleRF-ShortcutSets\ModuleRF-ShortcutSets.vcxproj", "{E56E0D07-3F8E-4CF9-93F6-04509089BF98}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Children Projects", "Children Projects", "{F631C866-BF1B-4101-A154-7B191FE870FB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Ultrawide.KH2", "Ultrawide.KH2\Ultrawide.KH2.vcxproj", "{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -85,6 +89,14 @@ Global
 		{E56E0D07-3F8E-4CF9-93F6-04509089BF98}.Release|x64.Build.0 = Release|x64
 		{E56E0D07-3F8E-4CF9-93F6-04509089BF98}.Release|x86.ActiveCfg = Release|Win32
 		{E56E0D07-3F8E-4CF9-93F6-04509089BF98}.Release|x86.Build.0 = Release|Win32
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Debug|x64.ActiveCfg = Debug|x64
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Debug|x64.Build.0 = Debug|x64
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Debug|x86.ActiveCfg = Debug|Win32
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Debug|x86.Build.0 = Debug|Win32
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Release|x64.ActiveCfg = Release|x64
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Release|x64.Build.0 = Release|x64
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Release|x86.ActiveCfg = Release|Win32
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,6 +109,7 @@ Global
 		{6E00180D-132B-4FA2-B0FF-881707197497} = {7CF06E0D-46DF-4466-88D3-E86A9735573B}
 		{B917744F-65A0-4A2B-8757-D9C5B8C1401F} = {7CF06E0D-46DF-4466-88D3-E86A9735573B}
 		{E56E0D07-3F8E-4CF9-93F6-04509089BF98} = {7CF06E0D-46DF-4466-88D3-E86A9735573B}
+		{F64232E5-9407-472D-BB8C-A1DF8B1E59B4} = {F631C866-BF1B-4101-A154-7B191FE870FB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {801E92CA-93CD-4639-9297-EB8FCDFDE348}
