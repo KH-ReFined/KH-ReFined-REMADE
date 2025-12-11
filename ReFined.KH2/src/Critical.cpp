@@ -1,7 +1,4 @@
 #include "Critical.h"
-#include <memory_manager.h>
-#include <sstream>
-#include <iomanip>
 
 using namespace std;
 

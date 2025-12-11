@@ -7,6 +7,9 @@
 #include <iostream>
 #include <Windows.h>
 #include <algorithm>
+#include <memory_manager.h>
+#include <sstream>
+#include <iomanip>
 
 #include "pax.h"
 #include "area.h"
