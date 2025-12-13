@@ -311,6 +311,29 @@ extern "C"
 
 		memcpy(_fetchCulling2D + 0x06C, &_falseByte, 0x01);
 
+		dk::NEXT_FORM::instance = (char*)malloc(0xDB8);
+
+		if (dk::NEXT_FORM::instance != nullptr)
+		{
+			memset(dk::NEXT_FORM::instance, 0x00, 0xDB8);
+
+			*reinterpret_cast<uint64_t*>(dk::NEXT_FORM::instance) = reinterpret_cast<uint64_t>(dk::NEXT_FORM::VTABLE_CLASS);
+			*reinterpret_cast<uint64_t*>(dk::NEXT_FORM::instance + 0x38) = reinterpret_cast<uint64_t>(dk::NEXT_FORM::VTABLE_SPRITE);
+
+			YI::SEQUENCE::CreateNew(dk::NEXT_FORM::instance + 0x58);
+
+			char* _seqdChain = dk::NEXT_FORM::instance + 0x230;
+
+			for (int i = 0; i < 7; i++)
+			{
+				YI::SEQUENCE::CreateNew(_seqdChain);
+				_seqdChain += 0x1A0;
+			}
+
+			*reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0x048) = 0x00;
+			*reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0x214) = 0x00;
+		}
+
 		wchar_t search[MAX_PATH];
 		wcscpy(search, mod_path);
 		wcscat(search, L"\\dll\\modules\\ModuleRF-*.dll");

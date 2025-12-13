@@ -39,6 +39,9 @@ namespace ReFined
 		static char SAVE_MODE;
 		static bool CONTROLLER_MODE;
 
+		static uint32_t POSITIVE_ASPECT_OFFSET;
+		static uint32_t NEGATIVE_ASPECT_OFFSET;
+
 		static void RegisterMagic();
 		static void RegisterMovement();
 		static void ShowInformation();

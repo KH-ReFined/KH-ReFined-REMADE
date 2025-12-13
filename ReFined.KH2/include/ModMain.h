@@ -17,6 +17,8 @@
 #include "menu.h"
 #include "message.h"
 #include "softreset.h"
+#include "sequence.h"
+#include "next_form.h"
 
 #include "Demand.h"
 #include "Continuous.h"

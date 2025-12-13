@@ -25,6 +25,7 @@
 #include "command_elem.h"
 #include "party.h"
 #include "form_level.h"
+#include "next_form.h"
 #include <chrono>
 
 #include "Continuous.h"
@@ -77,11 +78,6 @@ char* VSYNC_SETLIMIT_FUNCTION = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x
 char* ADJUST_GLOW_FUNCTION = SignatureScan<char*>("\x4C\x8B\xDC\x49\x89\x5B\x20\x55\x56\x57\x41\x54\x41\x56\x49\x8D\xAB\x18\xF2\xFF\xFF\x48\x81\xEC\xC0\x0E\x00\x00\x48\x8B\x05\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????");
 char* INIT_VIEWPORT_FUNCTION = SignatureScan<char*>("\x48\x83\xEC\x38\xE8\x00\x00\x00\x00\x48\xC7\x44\x24\x20\x00\x00\x00\x00\x0F\x10\x54\x24\x20\xF3\x0F\x10\x48\x10\xF3\x0F\x10\x40\x14\x0F\xC6\xD2\xD2\xF3\x0F\x10\xD1\x0F\xC6\xD2\x27\xF3\x0F\x10\xD0\x0F\xC6\xD2\x39\x0F\x11\x90\x5C\x01\x00\x00\x48\x83\xC4\x38\xC3", "xxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 char* ADJUST_VIEWPORT_FUNCTION = SignatureScan<char*>("\x48\x83\xEC\x78\x0F\x29\x74\x24\x60\x0F\x28\xF1\x0F\x29\x7C\x24\x50\x0F\x28\xFA\x44\x0F\x29\x44\x24\x40\x44\x0F\x28\xC3\x44\x0F\x29\x4C\x24\x30\x44\x0F\x28\xC8\xE8\x00\x00\x00\x00\x45\x0F\xC6\xC9\xE1\xF3\x44\x0F\x10\xCE\x0F\x28\x74\x24\x60\x45\x0F\xC6\xC9\xC6\xF3\x44\x0F\x10\xCF\x0F\x28\x7C\x24\x50\x45\x0F\xC6\xC9\x27\xF3\x45\x0F\x10\xC8\x44\x0F\x28\x44\x24\x40\x45\x0F\xC6\xC9\x39\x44\x0F\x11\x88\x5C\x01\x00\x00\x44\x0F\x28\x4C\x24\x30\x48\x83\xC4\x78\xC3", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-
-char* POINTER_MUNNY;
-
-char* PRIZE_GET_COMMON = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x30\x41\x0F\xB6\x58", "xxxxxxxxxxxxxxxxxxxxxxxx");
-char* FUNC_MUNNY_ACTUAL;
 
 vector<char> CALL_FUNC_MUNNY;
 
@@ -623,42 +619,8 @@ void ReFined::Continuous::HandleShake()
 
 void ReFined::Continuous::ShowFormEXP()
 {
-	if (CALL_FUNC_MUNNY.size() == 0x00)
+	if (*(YS::AREA::SaveData + 0x3524) != 0x00 && *(YS::AREA::IsInMap) == 1 && *(YS::TITLE::IsTitle) == 0)
 	{
-		CALL_FUNC_MUNNY.resize(0x05);
-		memcpy(CALL_FUNC_MUNNY.data(), PRIZE_GET_COMMON + 0xB1, 0x05);
-
-		POINTER_MUNNY = ResolveRelativeAddress<char*>(reinterpret_cast<char*>(dk::INFORMATION::openGetMunny), 0x05);
-		FUNC_MUNNY_ACTUAL = ResolveRelativeAddress<char*>(reinterpret_cast<char*>(dk::INFORMATION::openGetMunny), 0x0A);
-	}
-
-	if (*(YS::AREA::SaveData + 0x3524) == 0x00 && IS_IN_FORM)
-	{
-		PAST_EXP_FORM = 0;
-		memcpy(PRIZE_GET_COMMON + 0xB1, CALL_FUNC_MUNNY.data(), 0x05);
-
-		*(FUNC_MUNNY_ACTUAL + 0x89) = 0x11;
-		*(FUNC_MUNNY_ACTUAL + 0x2C) = 0x11;
-
-		IS_IN_FORM = false;
-	}
-
-	else if (*(YS::AREA::SaveData + 0x3524) != 0x00)
-	{
-		if (!IS_IN_FORM)
-		{
-			IS_IN_FORM = true;
-
-			char* _nopArray = new char[0x05];
-			fill(_nopArray, _nopArray + 0x05, 0x90);
-
-			memcpy(PRIZE_GET_COMMON + 0xB1, _nopArray, 0x05);
-
-			*(FUNC_MUNNY_ACTUAL + 0x89) = 0x4B;
-			*(FUNC_MUNNY_ACTUAL + 0x2C) = 0x4B;
-
-		}
-
 		uint8_t _currLevel = *(YS::AREA::SaveData + 0x32F4 + (0x38 * (*(YS::AREA::SaveData + 0x3524) - 1)) + 0x02);
 		uint32_t _currExp = *reinterpret_cast<uint32_t*>(YS::AREA::SaveData + 0x32F4 + (0x38 * (*(YS::AREA::SaveData + 0x3524) - 1)) + 0x04);
 
@@ -669,13 +631,11 @@ void ReFined::Continuous::ShowFormEXP()
 
 		else if (PAST_EXP_FORM != _currExp)
 		{
-			uint64_t _fetchPointer = *reinterpret_cast<uint64_t*>(POINTER_MUNNY);
-			uint32_t* _fetchCurrentValue = reinterpret_cast<uint32_t*>(_fetchPointer + 0xDAC);
-
-			*_fetchCurrentValue = 0x00;
-
-			dk::INFORMATION::openGetMunny(_expFetch - _currExp);
+			dk::NEXT_FORM::create(_expFetch - _currExp, ReFined::Critical::NEGATIVE_ASPECT_OFFSET);
 			PAST_EXP_FORM = _currExp;
 		}
 	}
+
+	else if (*(YS::AREA::IsInMap) == 0 || *(YS::TITLE::IsTitle) == 1)
+		PAST_EXP_FORM = 0x00;
 }

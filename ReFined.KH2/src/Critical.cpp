@@ -54,6 +54,9 @@ uint8_t RETRY_MODE;
 ReFined::Continue::Entry RETRY_ENTRY(0x0002, 0x8AB1);
 ReFined::Continue::Entry PREPARE_ENTRY(0x0002, 0x5727);
 
+uint32_t ReFined::Critical::POSITIVE_ASPECT_OFFSET = 0x55;
+uint32_t ReFined::Critical::NEGATIVE_ASPECT_OFFSET = 0xFFFFFFAB;
+
 vector<char*> POSITIVE_ASPECT_SHORT;
 vector<char*> NEGATIVE_ASPECT_SHORT = MultiSignatureScan("\xC7\x00\x00\x00\xAB\xFF\xFF\xFF", "x???xxxx");
 vector<char*> POSITIVE_ASPECT_LONG;
@@ -696,8 +699,8 @@ void ReFined::Critical::AspectCorrection()
 
 	if (_resolutionHorizontal != 0x00 && _resolutionVertical != 0x00)
 	{
-		uint32_t _offsetPositive = 0x55;
-		uint32_t _offsetNegative = 0xFFFFFFAB;
+		POSITIVE_ASPECT_OFFSET = 0x55;
+		NEGATIVE_ASPECT_OFFSET = 0xFFFFFFAB;
 
 		uint16_t _offsetInformation = 0xFFFF;
 
@@ -731,8 +734,8 @@ void ReFined::Critical::AspectCorrection()
 		auto _heightFactor = _resolutionVertical / 1080;
 		auto _widthCalc = floorf(_resolutionHorizontal / _heightFactor);
 
-		_offsetPositive = ceilf(0.177F * (_widthCalc - 1440));
-		_offsetNegative = _offsetPositive * -1;
+		POSITIVE_ASPECT_OFFSET = ceilf(0.177F * (_widthCalc - 1440));
+		NEGATIVE_ASPECT_OFFSET = POSITIVE_ASPECT_OFFSET * -1;
 
 		_offsetInformation = 0xFFFFU - floorf((((_widthCalc - 1440) - 480) * 0.1780F));
 
@@ -798,29 +801,29 @@ void ReFined::Critical::AspectCorrection()
 		}
 
 		for (int i = 0; i < POSITIVE_ASPECT_SHORT.size(); i++)
-			memcpy(POSITIVE_ASPECT_SHORT[i] + 0x04, &_offsetPositive, 0x04);
+			memcpy(POSITIVE_ASPECT_SHORT[i] + 0x04, &POSITIVE_ASPECT_OFFSET, 0x04);
 		for (int i = 0; i < NEGATIVE_ASPECT_SHORT.size(); i++)
-			memcpy(NEGATIVE_ASPECT_SHORT[i] + 0x04, &_offsetNegative, 0x04);
+			memcpy(NEGATIVE_ASPECT_SHORT[i] + 0x04, &NEGATIVE_ASPECT_OFFSET, 0x04);
 
 		for (int i = 0; i < POSITIVE_ASPECT_LONG.size(); i++)
-			memcpy(POSITIVE_ASPECT_LONG[i] + 0x06, &_offsetPositive, 0x04);
+			memcpy(POSITIVE_ASPECT_LONG[i] + 0x06, &POSITIVE_ASPECT_OFFSET, 0x04);
 		for (int i = 0; i < NEGATIVE_ASPECT_LONG.size(); i++)
-			memcpy(NEGATIVE_ASPECT_LONG[i] + 0x06, &_offsetNegative, 0x04);
+			memcpy(NEGATIVE_ASPECT_LONG[i] + 0x06, &NEGATIVE_ASPECT_OFFSET, 0x04);
 
 		for (int i = 0; i < POSITIVE_ASPECT_BYTE.size(); i++)
-			memcpy(POSITIVE_ASPECT_BYTE[i] + 0x01, &_offsetPositive, 0x04);
+			memcpy(POSITIVE_ASPECT_BYTE[i] + 0x01, &POSITIVE_ASPECT_OFFSET, 0x04);
 		for (int i = 0; i < NEGATIVE_ASPECT_BYTE.size(); i++)
-			memcpy(NEGATIVE_ASPECT_BYTE[i] + 0x01, &_offsetNegative, 0x04);
+			memcpy(NEGATIVE_ASPECT_BYTE[i] + 0x01, &NEGATIVE_ASPECT_OFFSET, 0x04);
 
 		for (int i = 0; i < _fetchSimpleCont.size(); i++)
-			memcpy(_fetchSimpleCont[i] + 0x03, &_offsetNegative, 0x04);
+			memcpy(_fetchSimpleCont[i] + 0x03, &NEGATIVE_ASPECT_OFFSET, 0x04);
 
 		memcpy(INFORMATION_OFFSET + 0x0B, &_offsetInformation, 0x02);
 
 		auto _eventPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
 		auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
 
-		if ((_commandPointer == 0x00 || _eventPointer != 0x00 || !*YS::AREA::IsInMap) && _offsetPositive != 0x55)
+		if ((_commandPointer == 0x00 || _eventPointer != 0x00 || !*YS::AREA::IsInMap) && POSITIVE_ASPECT_OFFSET != 0x55)
 		{
 			vector<char*> _fetchMission =
 			{
@@ -845,8 +848,8 @@ void ReFined::Critical::AspectCorrection()
 
 		else if (_commandPointer != 0x00 && _eventPointer == 0x00 && *YS::AREA::IsInMap)
 		{
-			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x21, &_offsetPositive, 0x04);
-			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x29, &_offsetNegative, 0x04);
+			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x21, &POSITIVE_ASPECT_OFFSET, 0x04);
+			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x29, &NEGATIVE_ASPECT_OFFSET, 0x04);
 		}
 	}
 }
