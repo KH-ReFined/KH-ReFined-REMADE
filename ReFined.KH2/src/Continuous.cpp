@@ -23,6 +23,7 @@
 #include "command_draw.h"
 #include "shake.h"
 #include "command_elem.h"
+#include "item.h"
 #include "party.h"
 #include "form_level.h"
 #include "next_form.h"
@@ -619,12 +620,21 @@ void ReFined::Continuous::HandleShake()
 
 void ReFined::Continuous::ShowFormEXP()
 {
+	auto _currFormID = *(YS::AREA::SaveData + 0x3524);
+	auto _maxFormLevel = 0x02 + YS::ITEM::GetNumBackyard(0x001A) + YS::ITEM::GetNumBackyard(0x001B) + YS::ITEM::GetNumBackyard(0x001D) + YS::ITEM::GetNumBackyard(0x001F) + YS::ITEM::GetNumBackyard(0x0233);
+
 	if (*(YS::AREA::SaveData + 0x3524) != 0x00 && *(YS::AREA::IsInMap) == 1 && *(YS::TITLE::IsTitle) == 0)
 	{
-		uint8_t _currLevel = *(YS::AREA::SaveData + 0x32F4 + (0x38 * (*(YS::AREA::SaveData + 0x3524) - 1)) + 0x02);
-		uint32_t _currExp = *reinterpret_cast<uint32_t*>(YS::AREA::SaveData + 0x32F4 + (0x38 * (*(YS::AREA::SaveData + 0x3524) - 1)) + 0x04);
+		uint8_t _currLevel = *(YS::AREA::SaveData + 0x32F4 + (0x38 * (_currFormID - 1)) + 0x02);
 
-		uint32_t _expFetch = *reinterpret_cast<uint32_t*>(YS::FORM_LEVEL::Search(*(YS::AREA::SaveData + 0x3524), _currLevel) + 0x04);
+		if (_maxFormLevel == _currLevel && PAST_EXP_FORM != 0x00)
+		{
+			dk::NEXT_FORM::create(0x00, ReFined::Critical::NEGATIVE_ASPECT_OFFSET);
+			PAST_EXP_FORM = 0x00;
+		}
+
+		uint32_t _currExp = *reinterpret_cast<uint32_t*>(YS::AREA::SaveData + 0x32F4 + (0x38 * (_currFormID - 1)) + 0x04);
+		uint32_t _expFetch = *reinterpret_cast<uint32_t*>(YS::FORM_LEVEL::Search(_currFormID, _currLevel) + 0x04);
 
 		if (PAST_EXP_FORM == 0x00)
 			PAST_EXP_FORM = _currExp;
@@ -636,6 +646,6 @@ void ReFined::Continuous::ShowFormEXP()
 		}
 	}
 
-	else if (*(YS::AREA::IsInMap) == 0 || *(YS::TITLE::IsTitle) == 1)
+	else if (*(YS::AREA::IsInMap) == 0 || *(YS::TITLE::IsTitle) == 1 || _currFormID == 0x00)
 		PAST_EXP_FORM = 0x00;
 }

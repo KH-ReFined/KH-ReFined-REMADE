@@ -27,13 +27,7 @@ extern "C"
 			static char* instance;
 
 			static void create(int nextExp, int offset16x9);
-			static void initNumber();
-
-			using update_t = void(*)(char* obj);
-			static update_t update;
-
-			using draw_t = void(*)(char* obj);
-			static draw_t draw;
+			static void initNumber(int offset16x9);
 		};
 	}
 }
