@@ -16,6 +16,7 @@ namespace ReFined
 			static void HandleFrameLimiter();
 			static void HandleSaveGlow();
 			static void ShowFormEXP();
+			static void ShowSummonEXP();
 			static void HandleShake();
 	};
 }

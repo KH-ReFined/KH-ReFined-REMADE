@@ -512,6 +512,7 @@ extern "C"
 			ReFined::Continuous::ActivateWarpGOA();
 			ReFined::Continuous::HandleFrameLimiter();
 			ReFined::Continuous::ShowFormEXP();
+			ReFined::Continuous::ShowSummonEXP();
 
 			for (auto _module : moduleexec)
 				_module();

@@ -9,6 +9,7 @@ char* dk::NEXT_FORM::VTABLE_SPRITE = ResolveRelativeAddress<char*>("\x48\x89\x5C
 void dk::NEXT_FORM::create(int nextExp, int offset16x9)
 {
     auto _mainObject = dk::NEXT_FORM::instance + 0x38;
+    auto _formID = *(YS::AREA::SaveData + 0x3524);
 
     if (dk::Obj2D::isExist(_mainObject))
     {
@@ -17,7 +18,7 @@ void dk::NEXT_FORM::create(int nextExp, int offset16x9)
         if (_nextEXP != nextExp)
         {
             *reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0xDAC) = nextExp;
-            dk::Sprite::setNum(_mainObject, 0x51 + *(YS::AREA::SaveData + 0x3524));
+            dk::Sprite::setNum(_mainObject, (_formID == 0x00 ? 0x12 : 0x51 + _formID));
             dk::NEXT_FORM::initNumber(offset16x9);
         }
     }
@@ -29,7 +30,7 @@ void dk::NEXT_FORM::create(int nextExp, int offset16x9)
         auto _fetchImage = dk::LockOn::getYIImage();
         auto _fetchSeqd = dk::Field2DD::getSqd(0);
 
-        dk::Sprite::create(_mainObject, 4500, _fetchSeqd, _fetchImage, 0x51 + *(YS::AREA::SaveData + 0x3524), 7, offset16x9);
+        dk::Sprite::create(_mainObject, 4500, _fetchSeqd, _fetchImage, (_formID == 0x00 ? 0x12 : 0x51 + _formID), 7, offset16x9);
 
         auto _posX = 0x00;
         auto _posY = *reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0x2C);
@@ -70,10 +71,12 @@ void dk::NEXT_FORM::initNumber(int offset16x9)
 
     for (int i = 0; i < 0x08; i++)
     {
+        auto _formVar = *(YS::AREA::SaveData + 0x3524);
+
         if (_outArray[i] == 0xCCCCCCCC)
             break;
 
-        _fetchArray[i] = _outArray[i] + 0x3B + ((*(YS::AREA::SaveData + 0x3524) - 1) * 0x0A);
+        _fetchArray[i] = _outArray[i] + 0x3B + (_formVar == 0x00 ? 0x03 : _formVar - 0x01) * 0x0A;
     }
 
     if (_fetchArticles > 0)

@@ -66,6 +66,7 @@ bool IS_IN_FORM = false;
 bool RPC_ENABLED = true;
 
 uint64_t PAST_EXP_FORM = 0;
+uint64_t PAST_EXP_SUMM = 0;
 
 char* SAVE_OFFSET = SignatureScan<char*>("\x40\x55\x53\x48\x8D\x6C\x24\xB1\x48\x81\xEC\xC8\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x45\x3F\x48\x8B\xD9\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxx????");
 
@@ -618,6 +619,8 @@ void ReFined::Continuous::HandleShake()
 	}
 }
 
+
+
 void ReFined::Continuous::ShowFormEXP()
 {
 	auto _currFormID = *(YS::AREA::SaveData + 0x3524);
@@ -648,4 +651,36 @@ void ReFined::Continuous::ShowFormEXP()
 
 	else if (*(YS::AREA::IsInMap) == 0 || *(YS::TITLE::IsTitle) == 1 || _currFormID == 0x00)
 		PAST_EXP_FORM = 0x00;
+}
+
+void ReFined::Continuous::ShowSummonEXP()
+{
+	auto _surrSummID = *(YS::AREA::SaveData + 0x3525);
+	auto _maxSummLevel = 0x03 + YS::ITEM::GetNumBackyard(0x0019) + YS::ITEM::GetNumBackyard(0x017F) + YS::ITEM::GetNumBackyard(0x009F) + YS::ITEM::GetNumBackyard(0x00A0);
+
+	if (*(YS::AREA::SaveData + 0x3525) != 0x00 && *(YS::AREA::IsInMap) == 1 && *(YS::TITLE::IsTitle) == 0)
+	{
+		uint8_t _currLevel = *(YS::AREA::SaveData + 0x3526);
+
+		if (_maxSummLevel == _currLevel && PAST_EXP_SUMM != 0x00)
+		{
+			dk::NEXT_FORM::create(0x00, ReFined::Critical::NEGATIVE_ASPECT_OFFSET);
+			PAST_EXP_SUMM = 0x00;
+		}
+
+		uint32_t _currExp = *reinterpret_cast<uint32_t*>(YS::AREA::SaveData + 0x36E4);
+		uint32_t _expFetch = *reinterpret_cast<uint32_t*>(YS::FORM_LEVEL::GetSummonTable() + 0x04);
+
+		if (PAST_EXP_SUMM == 0x00)
+			PAST_EXP_SUMM = _currExp;
+
+		else if (PAST_EXP_SUMM != _currExp)
+		{
+			dk::NEXT_FORM::create(_expFetch - _currExp, ReFined::Critical::NEGATIVE_ASPECT_OFFSET);
+			PAST_EXP_SUMM = _currExp;
+		}
+	}
+
+	else if (*(YS::AREA::IsInMap) == 0 || *(YS::TITLE::IsTitle) == 1 || _surrSummID == 0x00)
+		PAST_EXP_SUMM = 0x00;
 }
