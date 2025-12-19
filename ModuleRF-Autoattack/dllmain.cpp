@@ -105,7 +105,7 @@ extern "C"
 			auto _commandFlag = *reinterpret_cast<const uint8_t*>(*reinterpret_cast<uint64_t*>(_commandMenuPtr) + 0x19);
 
 			bool _isActionGood = _currChildMenu == 0x00 && _currCommand == 0x00;
-			bool _isCommandGood = (_firstCommand == 0x0001 || _firstCommand == 0x016D || _firstCommand == 0x0088) && (_commandFlag == 0x00) && (_mainMenuType == 0x00 || _mainMenuType == 0x06);
+			bool _isCommandGood = (_firstCommand == 0x0001 || _firstCommand == 0x0088) && (_commandFlag == 0x00) && (_mainMenuType == 0x00 || _mainMenuType == 0x06);
 
 			auto _fetchButtons = *_hardpadInput;
 
