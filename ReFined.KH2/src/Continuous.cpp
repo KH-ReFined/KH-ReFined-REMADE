@@ -656,7 +656,10 @@ void ReFined::Continuous::ShowFormEXP()
 void ReFined::Continuous::ShowSummonEXP()
 {
 	auto _surrSummID = *(YS::AREA::SaveData + 0x3525);
-	auto _maxSummLevel = 0x03 + YS::ITEM::GetNumBackyard(0x0019) + YS::ITEM::GetNumBackyard(0x017F) + YS::ITEM::GetNumBackyard(0x009F) + YS::ITEM::GetNumBackyard(0x00A0);
+	auto _maxSummLevel = 0x02 + YS::ITEM::GetNumBackyard(0x0019) + YS::ITEM::GetNumBackyard(0x017F) + YS::ITEM::GetNumBackyard(0x009F) + YS::ITEM::GetNumBackyard(0x00A0);
+
+	if (_maxSummLevel == 0x06)
+		_maxSummLevel = 0x07;
 
 	if (*(YS::AREA::SaveData + 0x3525) != 0x00 && *(YS::AREA::IsInMap) == 1 && *(YS::TITLE::IsTitle) == 0)
 	{
