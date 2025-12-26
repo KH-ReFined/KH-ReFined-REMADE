@@ -6,6 +6,8 @@
 #include <algorithm>
 
 #include <Windows.h>
+#include <Psapi.h>
+#include <thread>
 
 using namespace std;
 
@@ -13,10 +15,59 @@ bool SUBMIT_SHORTCUTS = false;
 bool REVERTED_SHORTNAME = false;
 bool DEBOUNCE_SHORTCUT = false;
 
+bool EDITING_SHORTCUT_NAME = false;
+
+string STARTING_DEFAULT = "";
+uint8_t CURRENT_KEY_SHORTCUT = 0x30;
+
+vector<uint8_t> KEY_DEBOUNCE(256);
+uint8_t KEY_DEBOUNCE_TIMEOUT = 0x00;
+uint16_t KEY_ENTER_TIMEOUT = 0x00;
+
 uint8_t CURRENT_SHORTCUT_SET = 0x80;
-vector<vector<char>> DEFAULT_SHORTCUT_NAMES;
+string DEFAULT_SHORTCUT;
+vector<vector<char>> SHORTCUT_NAMES;
 
 HMODULE MAIN_HANDLE;
+
+struct ModuleInfo
+{
+	const char* startAddr;
+	const char* endAddr;
+
+	ModuleInfo()
+	{
+		HMODULE hModule = GetModuleHandle(NULL);
+		startAddr = reinterpret_cast<const char*>(hModule);
+
+		MODULEINFO info = {};
+		GetModuleInformation(GetCurrentProcess(), hModule, &info, sizeof(info));
+		endAddr = startAddr + info.SizeOfImage;
+	}
+};
+
+static const ModuleInfo moduleInfo;
+
+template <typename T>
+T SignatureScan(const char* pattern, const char* mask)
+{
+	size_t patLen = std::strlen(mask);
+
+	for (const char* addr = moduleInfo.startAddr; addr < moduleInfo.endAddr - patLen; ++addr)
+	{
+		size_t i = 0;
+		for (; i < patLen; ++i)
+		{
+			if (mask[i] != '?' && pattern[i] != addr[i])
+				break;
+		}
+
+		if (i == patLen)
+			return reinterpret_cast<T>(const_cast<char*>(addr));
+	}
+
+	return nullptr;
+}
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
@@ -33,6 +84,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     }
     return TRUE;
 }
+
+char* OFFSET_INPUT_REG = SignatureScan<char*>("\x40\x53\x55\x41\x54\x41\x55\x41\x56\x48\x83\xEC\x30\x48\x8B\x2D", "xxxxxxxxxxxxxxxx");
+vector<uint8_t> INPUT_REG;
 
 extern "C"
 {
@@ -77,19 +131,57 @@ extern "C"
 		DecodeKHSCII_t _decodeKHSCII = (DecodeKHSCII_t)GetProcAddress(MAIN_HANDLE, "?DecodeKHSCII@MESSAGE@YS@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@PEBD@Z");
 		EncodeKHSCII_t _encodeKHSCII = (EncodeKHSCII_t)GetProcAddress(MAIN_HANDLE, "?EncodeKHSCII@MESSAGE@YS@@SA?AV?$vector@DV?$allocator@D@std@@@std@@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@4@@Z");
 
-		if (DEFAULT_SHORTCUT_NAMES.size() == 0x00)
+		if (DEFAULT_SHORTCUT.size() == 0x00)
+			DEFAULT_SHORTCUT = _decodeKHSCII(_getData(0x051F));
+
+		if (!*_isTitle && SHORTCUT_NAMES.size() == 0x00)
 		{
-			auto _shortString = _decodeKHSCII(_getData(0x051F));
+			if (*(_saveData + 0x20) != 0x00)
+			{
+				auto _decodedStr = _decodeKHSCII(_saveData + 0x20);
+				SHORTCUT_NAMES.push_back(_encodeKHSCII(_decodedStr));
+			}
 
-			replace(_shortString.begin(), _shortString.end(), 'X', 'A');
-			DEFAULT_SHORTCUT_NAMES.push_back(_encodeKHSCII(_shortString));
+			else
+			{
+				auto _fetchDefault = DEFAULT_SHORTCUT;
+				replace(_fetchDefault.begin(), _fetchDefault.end(), 'X', 'A');
+				SHORTCUT_NAMES.push_back(_encodeKHSCII(_fetchDefault));
+			}
 
-			replace(_shortString.begin(), _shortString.end(), 'A', 'B');
-			DEFAULT_SHORTCUT_NAMES.push_back(_encodeKHSCII(_shortString));
+			if (*(_saveData + 0x40) != 0x00)
+			{
+				auto _decodedStr = _decodeKHSCII(_saveData + 0x40);
+				SHORTCUT_NAMES.push_back(_encodeKHSCII(_decodedStr));
+			}
 
-			replace(_shortString.begin(), _shortString.end(), 'B', 'C');
-			DEFAULT_SHORTCUT_NAMES.push_back(_encodeKHSCII(_shortString));
+			else
+			{
+				auto _fetchDefault = DEFAULT_SHORTCUT;
+				replace(_fetchDefault.begin(), _fetchDefault.end(), 'X', 'B');
+				SHORTCUT_NAMES.push_back(_encodeKHSCII(_fetchDefault));
+
+			}
+
+			if (*(_saveData + 0x60) != 0x00)
+			{
+				auto _decodedStr = _decodeKHSCII(_saveData + 0x60);
+				SHORTCUT_NAMES.push_back(_encodeKHSCII(_decodedStr));
+			}
+
+			else
+			{
+				auto _fetchDefault = DEFAULT_SHORTCUT;
+				replace(_fetchDefault.begin(), _fetchDefault.end(), 'X', 'C');
+				SHORTCUT_NAMES.push_back(_encodeKHSCII(_fetchDefault));
+			}
+
+			INPUT_REG.resize(4);
+			memcpy(INPUT_REG.data(), OFFSET_INPUT_REG + 0x109, 0x04);
 		}
+
+		else if (*_isTitle && SHORTCUT_NAMES.size() != 0x00)
+			SHORTCUT_NAMES.clear();
 
 		if (!*_isInMap && CURRENT_SHORTCUT_SET != *(_saveData + 0xE600))
 			CURRENT_SHORTCUT_SET = *(_saveData + 0xE600);
@@ -124,19 +216,33 @@ extern "C"
 			vector<char> _currentText(_currentTextSize + 0x01);
 			memcpy(_currentText.data(), _currentTextPtr, _currentTextSize + 0x01);
 
-			if (!IS_CUSTOMIZE && !IS_SHORTEDIT && !REVERTED_SHORTNAME)
+			if (!EDITING_SHORTCUT_NAME)
 			{
-				auto _soraText = _getData(0x572E);
-				auto _soraSize = _getSize(_soraText);
+				if (!IS_CUSTOMIZE && !IS_SHORTEDIT && !REVERTED_SHORTNAME)
+				{
+					auto _soraText = _getData(0x572E);
+					auto _soraSize = _getSize(_soraText);
 
-				memcpy(const_cast<char*>(_currentTextPtr), _soraText, _soraSize + 0x01);
-				REVERTED_SHORTNAME = true;
-			}
+					memcpy(const_cast<char*>(_currentTextPtr), _soraText, _soraSize + 0x01);
+					REVERTED_SHORTNAME = true;
+				}
 
-			else if ((IS_CUSTOMIZE || IS_SHORTEDIT) && (!equal(_currentText.begin(), _currentText.end(), DEFAULT_SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].begin()) || REVERTED_SHORTNAME))
-			{
-				memcpy(const_cast<char*>(_currentTextPtr), DEFAULT_SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].data(), DEFAULT_SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].size());
-				REVERTED_SHORTNAME = false;
+				else if ((IS_CUSTOMIZE || IS_SHORTEDIT))
+				{
+					bool _fetchEqual = false;
+
+					if (SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].size() > _currentText.size())
+						_fetchEqual = equal(_currentText.begin(), _currentText.end(), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].begin());
+
+					else
+						_fetchEqual = equal(SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].begin(), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].end(), _currentText.begin());
+
+					if (!_fetchEqual || REVERTED_SHORTNAME)
+					{
+						memcpy(const_cast<char*>(_currentTextPtr), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].data(), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].size());
+						REVERTED_SHORTNAME = false;
+					}
+				}
 			}
 
 			bool IS_INPUT_MENU = (*_hardpadInput & 0x0400) == 0x0400 || (*_hardpadInput & 0x0800) == 0x0800;
@@ -176,16 +282,175 @@ extern "C"
 
 					else if (IS_CUSTOMIZE && _subOptionSelect != nullptr)
 					{
+						if (EDITING_SHORTCUT_NAME)
+						{
+							if (GetAsyncKeyState(VK_RETURN) & 0x8000)
+							{
+								_playSFX(0x02);
+								memcpy(OFFSET_INPUT_REG + 0x109, INPUT_REG.data(), 0x04);
+
+								auto _encodedEnd = _encodeKHSCII(STARTING_DEFAULT);
+
+								_encodedEnd.insert(_encodedEnd.begin(), (char)(STARTING_DEFAULT.size() <= 13 ? 0x64 : 90 - (4 * (STARTING_DEFAULT.size() - 13))));
+								_encodedEnd.insert(_encodedEnd.begin(), 0x0B);
+
+								SHORTCUT_NAMES[CURRENT_SHORTCUT_SET] = _encodedEnd;
+								memcpy(_saveData + 0x20 + (0x20 * CURRENT_SHORTCUT_SET), _encodedEnd.data(), _encodedEnd.size());
+
+								memcpy(const_cast<char*>(_currentTextPtr), _encodedEnd.data(), _encodedEnd.size());
+								EDITING_SHORTCUT_NAME = false;
+								KEY_ENTER_TIMEOUT = 0;
+							}
+
+							else if (GetAsyncKeyState(VK_BACK) & 0x8000)
+							{
+								if (STARTING_DEFAULT.size() != 0x00 && KEY_DEBOUNCE.at(VK_BACK) == 0x00)
+								{
+									_playSFX(0x04);
+
+									STARTING_DEFAULT = STARTING_DEFAULT.erase(STARTING_DEFAULT.size() - 1);
+
+									auto _encodedEnd = _encodeKHSCII(STARTING_DEFAULT);
+
+									char* _textWidth = new char[0x02] { 0x0B, (char)(STARTING_DEFAULT.size() <= 13 ? 0x64 : 90 - (4 * (STARTING_DEFAULT.size() - 13))) };
+									memcpy(const_cast<char*>(_currentTextPtr + 0x02), _textWidth, 0x02);
+									memcpy(const_cast<char*>(_currentTextPtr + 0x04), _encodedEnd.data(), _encodedEnd.size());
+
+									KEY_DEBOUNCE.at(VK_BACK) = 0x01;
+									KEY_DEBOUNCE_TIMEOUT = 0x00;
+									KEY_ENTER_TIMEOUT = 0;
+								}
+							}
+
+							else if (GetAsyncKeyState(VK_SPACE) & 0x8000 && STARTING_DEFAULT.size() < 32)
+							{
+								if (KEY_DEBOUNCE.at(VK_SPACE) == 0x00)
+								{
+									_playSFX(0x01);
+									STARTING_DEFAULT.push_back(' ');
+
+									auto _encodedEnd = _encodeKHSCII(STARTING_DEFAULT);
+
+									char* _textWidth = new char[0x02] { 0x0B, (char)(STARTING_DEFAULT.size() <= 13 ? 0x64 : 90 - (4 * (STARTING_DEFAULT.size() - 13))) };
+									memcpy(const_cast<char*>(_currentTextPtr + 0x02), _textWidth, 0x02);
+									memcpy(const_cast<char*>(_currentTextPtr + 0x04), _encodedEnd.data(), _encodedEnd.size());
+
+									KEY_DEBOUNCE.at(VK_SPACE) = 0x01;
+									KEY_DEBOUNCE_TIMEOUT = 0x00;
+									KEY_ENTER_TIMEOUT = 0;
+								}
+							}
+
+							else
+							{
+								if (KEY_DEBOUNCE.at(VK_SPACE) != 0x00 || KEY_DEBOUNCE.at(VK_BACK) != 0x00)
+									KEY_DEBOUNCE.at(VK_SPACE) = 0; KEY_DEBOUNCE.at(VK_BACK) = 0; KEY_DEBOUNCE_TIMEOUT = 0x00;
+
+								for (int k = 0x30; k <= 0x5A; k++)
+								{
+									if (k >= 0x3A && k <= 0x40)
+										k = 0x41;
+
+									if (GetAsyncKeyState(k) & 0x8000)
+									{
+										if (KEY_DEBOUNCE.at(k) == 0x00)
+										{
+											if (STARTING_DEFAULT.size() < 32)
+											{
+												_playSFX(0x01);
+
+												if (k >= 0x41)
+													STARTING_DEFAULT.push_back(k + ((GetKeyState(VK_CAPITAL) & 0x01) == 0x01 ? 0x00 : 0x20));
+
+												else
+													STARTING_DEFAULT.push_back(k);
+
+												auto _encodedEnd = _encodeKHSCII(STARTING_DEFAULT);
+
+												char* _textWidth = new char[0x02] { 0x0B, (char)(STARTING_DEFAULT.size() <= 13 ? 0x64 : 90 - (4 * (STARTING_DEFAULT.size() - 13))) };
+												memcpy(const_cast<char*>(_currentTextPtr + 0x02), _textWidth, 0x02);
+												memcpy(const_cast<char*>(_currentTextPtr + 0x04), _encodedEnd.data(), _encodedEnd.size());
+
+												KEY_DEBOUNCE.at(k) = 0x01;
+												KEY_DEBOUNCE_TIMEOUT = 0x00;
+
+												KEY_ENTER_TIMEOUT = 0;
+
+												break;
+											}
+
+											else
+											{
+												_playSFX(0x05);
+												KEY_ENTER_TIMEOUT = 0;
+												break;
+											}
+										}
+									}
+
+									else if (KEY_DEBOUNCE.at(k) != 0x00)
+										KEY_DEBOUNCE.at(k) = 0x00;
+								}
+							}
+
+							KEY_DEBOUNCE_TIMEOUT++;
+							KEY_ENTER_TIMEOUT++;
+
+							if (KEY_DEBOUNCE_TIMEOUT >= 10)
+							{
+								KEY_DEBOUNCE.at(VK_SPACE) = 0; KEY_DEBOUNCE.at(VK_BACK) = 0;
+								KEY_DEBOUNCE_TIMEOUT = 0x00;
+							}
+
+							if (KEY_ENTER_TIMEOUT >= 300)
+							{
+								_playSFX(0x04);
+								memcpy(OFFSET_INPUT_REG + 0x109, INPUT_REG.data(), 0x04);
+
+								memcpy(const_cast<char*>(_currentTextPtr), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].data(), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].size());
+								EDITING_SHORTCUT_NAME = false;
+
+								KEY_DEBOUNCE.at(VK_SPACE) = 0; KEY_DEBOUNCE.at(VK_BACK) = 0;
+								KEY_DEBOUNCE_TIMEOUT = 0x00;
+								KEY_ENTER_TIMEOUT = 0;
+							}
+						}
+
 						if (*_subOptionSelect == 0x00)
 						{
-							auto _flowDirection = (*_hardpadInput & 0x0400) == 0x0400 ? -1 : ((*_hardpadInput & 0x0800) == 0x0800 ? 1 : 0);
-
-							if (_flowDirection != 0x00)
+							// If TRIANGLE input received:
+							if ((*_hardpadInput & 0x1000) == 0x1000)
 							{
 								_playSFX(0x02);
 
-								CURRENT_SHORTCUT_SET += _flowDirection;
-								DEBOUNCE_SHORTCUT = true;
+								EDITING_SHORTCUT_NAME = true;
+
+								char* _nopArray = new char[0x04];
+								fill(_nopArray, _nopArray + 0x04, 0x90);
+
+								memcpy(OFFSET_INPUT_REG + 0x109, _nopArray, 0x04);
+
+								char* _textColor = new char[0x02] { 0x04, 0x01 };
+								memcpy(const_cast<char*>(_currentTextPtr), _textColor, 0x02);
+
+								memcpy(const_cast<char*>(_currentTextPtr + 0x02), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].data(), SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].size());
+
+								STARTING_DEFAULT = _decodeKHSCII(SHORTCUT_NAMES[CURRENT_SHORTCUT_SET].data() + 0x02);
+
+								*_hardpadInput = 0x00;
+							}
+
+							else
+							{
+								auto _flowDirection = (*_hardpadInput & 0x0400) == 0x0400 ? -1 : ((*_hardpadInput & 0x0800) == 0x0800 ? 1 : 0);
+
+								if (_flowDirection != 0x00)
+								{
+									_playSFX(0x02);
+
+									CURRENT_SHORTCUT_SET += _flowDirection;
+									DEBOUNCE_SHORTCUT = true;
+								}
 							}
 						}
 					}
