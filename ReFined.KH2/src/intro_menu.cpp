@@ -35,15 +35,15 @@ void ReFined::IntroMenu::Submit()
 	{
 		auto _currentEntry = Children[i];
 
-		memcpy(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + (0x2C * i), &_currentEntry.Count, 0x04);
-		memcpy(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + (0x2C * i) + 0x04, &_currentEntry.FlairID, 0x04);
-		memcpy(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + (0x2C * i) + 0x08, &_currentEntry.TitleID, 0x04);
+		memcpy(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + (0x2C * i), &_currentEntry.Count, 0x04);
+		memcpy(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + (0x2C * i) + 0x04, &_currentEntry.FlairID, 0x04);
+		memcpy(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + (0x2C * i) + 0x08, &_currentEntry.TitleID, 0x04);
 
 		for (int z = 0; z < _currentEntry.ButtonIDs.size(); z++)
-			memcpy(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + (0x2C * i) + (0x04 * z) + 0x0C, &_currentEntry.ButtonIDs[z], 0x04);
+			memcpy(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + (0x2C * i) + (0x04 * z) + 0x0C, &_currentEntry.ButtonIDs[z], 0x04);
 
 		for (int z = 0; z < _currentEntry.DescriptionIDs.size(); z++)
-			memcpy(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + (0x2C * i) + (0x04 * z) + 0x1C, &_currentEntry.DescriptionIDs[z], 0x04);
+			memcpy(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + (0x2C * i) + (0x04 * z) + 0x1C, &_currentEntry.DescriptionIDs[z], 0x04);
 	}
 
 	vector<uint8_t> _firstInit(0x10);
@@ -52,10 +52,10 @@ void ReFined::IntroMenu::Submit()
 	uint8_t _lastIndex = Children.size() - 0x01;
 
 	fill(_firstInit.begin(), _firstInit.begin() + 0x10, 0x00);
-	memcpy(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x200, _firstInit.data(), 0x10);
+	memcpy(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200, _firstInit.data(), 0x10);
 
-	uint64_t _menuAddress = reinterpret_cast<uint64_t>(ReFined::MemoryManager::Fetch("INTRO_MEMORY"));
-	uint32_t _menuOffset = ReFined::MemoryManager::Fetch("INTRO_MEMORY") - moduleInfo.startAddr;
+	uint64_t _menuAddress = reinterpret_cast<uint64_t>(YS::PANACEA_ALLOC::Get("INTRO_MEMORY"));
+	uint32_t _menuOffset = YS::PANACEA_ALLOC::Get("INTRO_MEMORY") - moduleInfo.startAddr;
 
 	memcpy(INTRO_OFFSETS[0x03] + 0x097, &_childCount, 0x01);
 	memcpy(INTRO_OFFSETS[0x03] + 0x1F5, &_childCount, 0x01);
@@ -72,18 +72,18 @@ void ReFined::IntroMenu::Submit()
 	_menuOffset += 0x08; memcpy(INTRO_OFFSETS[0x00] + 0x276, &_menuOffset, 0x04);
 	_menuOffset += 0x10; memcpy(INTRO_OFFSETS[0x00] + 0x406, &_menuOffset, 0x04);
 
-	RedirectLEA(INTRO_OFFSETS[0x01] + 0x1DA, ReFined::MemoryManager::Fetch("INTRO_MEMORY"));
-	RedirectLEA(INTRO_OFFSETS[0x01] + 0x3D7, ReFined::MemoryManager::Fetch("INTRO_MEMORY"));
-	RedirectLEA(INTRO_OFFSETS[0x01] + 0x0AF, ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x08);
-	RedirectLEA(INTRO_OFFSETS[0x02] + 0x03D, ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x1C);
+	RedirectLEA(INTRO_OFFSETS[0x01] + 0x1DA, YS::PANACEA_ALLOC::Get("INTRO_MEMORY"));
+	RedirectLEA(INTRO_OFFSETS[0x01] + 0x3D7, YS::PANACEA_ALLOC::Get("INTRO_MEMORY"));
+	RedirectLEA(INTRO_OFFSETS[0x01] + 0x0AF, YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x08);
+	RedirectLEA(INTRO_OFFSETS[0x02] + 0x03D, YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x1C);
 
 	_menuOffset += 0x1E4; memcpy(INTRO_OFFSETS[0x00] + 0x3B5, &_menuOffset, 0x04);
 
-	RedirectLEA(INTRO_OFFSETS[0x01] + 0x0A8, ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x200);
-	RedirectLEA(INTRO_OFFSETS[0x04] + 0x1F2, ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x200);
-	RedirectMOV(INTRO_OFFSETS[0x05] + 0x2BF, ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x200);
-	RedirectMOV(INTRO_OFFSETS[0x06] + 0x009, ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x200);
-	RedirectCMP(INTRO_OFFSETS[0x06] + 0x017, ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x204);
+	RedirectLEA(INTRO_OFFSETS[0x01] + 0x0A8, YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200);
+	RedirectLEA(INTRO_OFFSETS[0x04] + 0x1F2, YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200);
+	RedirectMOV(INTRO_OFFSETS[0x05] + 0x2BF, YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200);
+	RedirectMOV(INTRO_OFFSETS[0x06] + 0x009, YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200);
+	RedirectCMP(INTRO_OFFSETS[0x06] + 0x017, YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x204);
 }
 
 void ReFined::IntroMenu::Add(int Index, Entry Input)

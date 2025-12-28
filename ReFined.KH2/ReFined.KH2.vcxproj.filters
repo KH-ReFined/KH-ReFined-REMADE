@@ -177,12 +177,6 @@
     <ClInclude Include="include\Demand.h">
       <Filter>Header Files\refined_internal</Filter>
     </ClInclude>
-    <ClInclude Include="include\memory_manager.h">
-      <Filter>Header Files\refined_classes</Filter>
-    </ClInclude>
-    <ClInclude Include="include\config_menu.h">
-      <Filter>Header Files\refined_classes</Filter>
-    </ClInclude>
     <ClInclude Include="include\continue_menu.h">
       <Filter>Header Files\refined_classes</Filter>
     </ClInclude>
@@ -256,6 +250,12 @@
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
     <ClInclude Include="include\kingdom\next_form.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\panacea_alloc.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\config_menu.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
   </ItemGroup>
@@ -374,12 +374,6 @@
     <ClCompile Include="src\kingdom\cache_buff.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
-    <ClCompile Include="src\memory_manager.cpp">
-      <Filter>Source Files\refined_classes</Filter>
-    </ClCompile>
-    <ClCompile Include="src\config_menu.cpp">
-      <Filter>Source Files\refined_classes</Filter>
-    </ClCompile>
     <ClCompile Include="src\continue_menu.cpp">
       <Filter>Source Files\refined_classes</Filter>
     </ClCompile>
@@ -465,6 +459,12 @@
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
     <ClCompile Include="src\kingdom\exp.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\config_menu.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\panacea_alloc.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>

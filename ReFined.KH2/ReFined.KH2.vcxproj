@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\config_menu.h" />
     <ClInclude Include="include\continue_menu.h" />
     <ClInclude Include="include\Continuous.h" />
     <ClInclude Include="include\Critical.h" />
@@ -49,6 +48,7 @@
     <ClInclude Include="include\kingdom\cmconfig.h" />
     <ClInclude Include="include\kingdom\command_draw.h" />
     <ClInclude Include="include\kingdom\command_elem.h" />
+    <ClInclude Include="include\kingdom\config_menu.h" />
     <ClInclude Include="include\kingdom\converter.h" />
     <ClInclude Include="include\kingdom\egs.h" />
     <ClInclude Include="include\kingdom\event.h" />
@@ -73,6 +73,7 @@
     <ClInclude Include="include\kingdom\next_form.h" />
     <ClInclude Include="include\kingdom\obj2d.h" />
     <ClInclude Include="include\kingdom\objentry.h" />
+    <ClInclude Include="include\kingdom\panacea_alloc.h" />
     <ClInclude Include="include\kingdom\party.h" />
     <ClInclude Include="include\kingdom\pax.h" />
     <ClInclude Include="include\kingdom\sequence.h" />
@@ -88,7 +89,6 @@
     <ClInclude Include="include\kingdom\weapon.h" />
     <ClInclude Include="include\kingdom\weapon_entry.h" />
     <ClInclude Include="include\kingdom\world.h" />
-    <ClInclude Include="include\memory_manager.h" />
     <ClInclude Include="include\ModMain.h" />
     <ClInclude Include="include\SigScan.h" />
   </ItemGroup>
@@ -96,7 +96,6 @@
     <ClCompile Include="include\kingdom\weapon_mset.h">
       <FileType>CppHeader</FileType>
     </ClCompile>
-    <ClCompile Include="src\config_menu.cpp" />
     <ClCompile Include="src\continue_menu.cpp" />
     <ClCompile Include="src\Continuous.cpp" />
     <ClCompile Include="src\Critical.cpp" />
@@ -122,6 +121,7 @@
     <ClCompile Include="src\kingdom\cmconfig.cpp" />
     <ClCompile Include="src\kingdom\command_draw.cpp" />
     <ClCompile Include="src\kingdom\command_elem.cpp" />
+    <ClCompile Include="src\kingdom\config_menu.cpp" />
     <ClCompile Include="src\kingdom\converter.cpp" />
     <ClCompile Include="src\kingdom\egs.cpp" />
     <ClCompile Include="src\kingdom\event.cpp" />
@@ -146,6 +146,7 @@
     <ClCompile Include="src\kingdom\next_form.cpp" />
     <ClCompile Include="src\kingdom\obj2d.cpp" />
     <ClCompile Include="src\kingdom\objentry.cpp" />
+    <ClCompile Include="src\kingdom\panacea_alloc.cpp" />
     <ClCompile Include="src\kingdom\party.cpp" />
     <ClCompile Include="src\kingdom\pax.cpp" />
     <ClCompile Include="src\kingdom\sequence.cpp" />
@@ -162,7 +163,6 @@
     <ClCompile Include="src\kingdom\weapon_entry.cpp" />
     <ClCompile Include="src\kingdom\weapon_mset.cpp" />
     <ClCompile Include="src\kingdom\world.cpp" />
-    <ClCompile Include="src\memory_manager.cpp" />
     <ClCompile Include="src\ModMain.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -17,25 +17,17 @@ vector<uint16_t> ABILITY_ARRAY;
 bool INTRO_APPLIED;
 bool ENFORCE_INTRO;
 
-bool CONFIG_INIT;
-bool CONFIG_FETCH;
-bool CONFIG_FIRST_INIT;
-uint16_t SETTING_MEMORY;
-
 char ReFined::Critical::SAVE_MODE = 0x00;
 bool ReFined::Critical::CONTROLLER_MODE = false;
 
-char* COMMAND_MENU_ADDR = ResolveRelativeAddress<char*>("\x40\x56\x48\x83\xEC\x30\x8B\x35\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\x48\x89\x5C\x24\x40\x48\x89\x7C\x24\x48", "xxxxxxxx????x????xxxx????x????xxxx????xxxxxxxxxx", 0x50);
-bool* COMMAND_FLAG_ADDR = ResolveRelativeAddress<bool*>("\x40\x56\x48\x83\xEC\x30\x8B\x35\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\x48\x89\x5C\x24\x40\x48\x89\x7C\x24\x48", "xxxxxxxx????x????xxxx????x????xxxx????xxxxxxxxxx", 0x5D) + 0x04;
-uint8_t* COMMAND_TYPE_ADDR = ResolveRelativeAddress<uint8_t*>("\x48\x83\xEC\x28\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x05\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\x48\x83\xC4\x28\xE9\x00\x00\x00\x00\xCC\xCC\x48\x8D\x05\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\xC3", "xxxxxxx????x????xxx????xxx????xxx????xxxxx????xxxxx????xxx????x", 0x1A);
+uint8_t* CMDTYPE_ADDR = ResolveRelativeAddress<uint8_t*>("\x48\x83\xEC\x28\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x48\x8D\x05\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\x48\x83\xC4\x28\xE9\x00\x00\x00\x00\xCC\xCC\x48\x8D\x05\x00\x00\x00\x00\x48\x89\x05\x00\x00\x00\x00\xC3", "xxxxxxx????x????xxx????xxx????xxx????xxxxx????xxxxx????xxx????x", 0x1A);
 
-char* CAMP_OFFSET = SignatureScan<char*>("\x48\x8B\xC4\x48\x81\xEC\x88\x00\x00\x00\x48\x89\x58\x18\xBA\x02\x00\x00\x00\x48\x89\x68\xF8\x48\x89\x70\xF0", "xxxxxxxxxxxxxxxxxxxxxxxxxxx");
-char* CAMPINIT_OFFSET = SignatureScan<char*>("\x66\x44\x89\x35\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x44\x88\x35\x00\x00\x00\x00\x0F\x95\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\xC7\x44\x24\x30\x8C\x00\x00\x00", "xxxx????x????xxxxx????xxx????x????xxx????xxxxxxxx");
+char* CMENU_OFFSET = SignatureScan<char*>("\x48\x8B\xC4\x48\x81\xEC\x88\x00\x00\x00\x48\x89\x58\x18\xBA\x02\x00\x00\x00\x48\x89\x68\xF8\x48\x89\x70\xF0", "xxxxxxxxxxxxxxxxxxxxxxxxxxx");
+char* CMENUINIT_OFFSET = SignatureScan<char*>("\x66\x44\x89\x35\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x44\x88\x35\x00\x00\x00\x00\x0F\x95\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\xC7\x44\x24\x30\x8C\x00\x00\x00", "xxxx????x????xxxxx????xxx????x????xxx????xxxxxxxx");
 
 vector <uint8_t> INST_CAMPBITWISE;
 vector <uint8_t> INST_CAMPINIT;
 
-char* MENUSELECT_OFFSET = SignatureScan<char*>("\x40\x55\x53\x48\x8D\x6C\x24\xB1\x48\x81\xEC\x98\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxx????");
 char* INFORMATION_OFFSET = SignatureScan<char*>("\x41\xB8\x40\x00\x00\x00\xB9\xAA\x00\x00\x00\x66\x2B\xC1\x66\x44\x89\x44\x24\x20\x44\x0F\xB7\x43\x2C\x48\x8D\x8B\x60\x02\x00\x00\x44\x0F\xB7\xC8\x33\xD2", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 bool SET_ADJUSTMENT;
@@ -194,8 +186,8 @@ void ReFined::Critical::RetryBattles()
 		memcpy(INST_MAPJUMPTASK.data(), reinterpret_cast<char*>(YS::AREA::MapJump) + 0x1F2, 0x05);
 		memcpy(INST_CONTINUELOAD.data(), reinterpret_cast<char*>(YS::AREA::MapJump) + 0x1D8, 0x05);
 
-		memcpy(INST_CAMPBITWISE.data(), reinterpret_cast<char*>(CAMP_OFFSET) + 0x1A7, 0x07);
-		memcpy(INST_CAMPINIT.data(), reinterpret_cast<char*>(CAMPINIT_OFFSET), 0x08);
+		memcpy(INST_CAMPBITWISE.data(), reinterpret_cast<char*>(CMENU_OFFSET) + 0x1A7, 0x07);
+		memcpy(INST_CAMPINIT.data(), reinterpret_cast<char*>(CMENUINIT_OFFSET), 0x08);
 	}
 
 	// If the room we are in is not blacklisted:
@@ -272,8 +264,8 @@ void ReFined::Critical::RetryBattles()
 					memcpy(YS::MENU::CampOptions, &_campBitwise, 0x01);
 
 					// NOP the instructions that set and refresh the camp menu options bitwise.
-					memcpy(CAMPINIT_OFFSET, _nopArrayCamp.data(), 0x08);
-					memcpy(CAMP_OFFSET + 0x1A7, _nopArrayCamp.data(), 0x07);
+					memcpy(CMENUINIT_OFFSET, _nopArrayCamp.data(), 0x08);
+					memcpy(CMENU_OFFSET + 0x1A7, _nopArrayCamp.data(), 0x07);
 
 					// Summon the camp menu.
 					YS::MENU::CampStart(0x00, 0x00);
@@ -291,8 +283,8 @@ void ReFined::Critical::RetryBattles()
 				memcpy(reinterpret_cast<char*>(YS::AREA::MapJump) + 0x1D8, INST_CONTINUELOAD.data(), 0x05);
 
 				// Restore all Camp initialization instructions.
-				memcpy(CAMPINIT_OFFSET, INST_CAMPINIT.data(), 0x08);
-				memcpy(CAMP_OFFSET + 0x1A7, INST_CAMPBITWISE.data(), 0x07);
+				memcpy(CMENUINIT_OFFSET, INST_CAMPINIT.data(), 0x08);
+				memcpy(CMENU_OFFSET + 0x1A7, INST_CAMPBITWISE.data(), 0x07);
 
 				// If the continue menu has been edited, remove all Retry elements.
 				if (ReFined::Continue::Children.size() > 0x02)
@@ -350,7 +342,7 @@ void ReFined::Critical::RetryBattles()
 		}
 
 		// If we are retrying, we are still in a boss battle, and the command menu type is "MICKEY"
-		else if (RETRY_MODE > 0x00 && *YS::AREA::BattleStatus == 0x02 && *COMMAND_TYPE_ADDR == 0x01)
+		else if (RETRY_MODE > 0x00 && *YS::AREA::BattleStatus == 0x02 && *CMDTYPE_ADDR == 0x01)
 		{
 			// Restore the Area Init functions so we don't loop after Mickey leaves.
 			memcpy(reinterpret_cast<char*>(YS::AREA::MapJump) + 0x1F2, INST_MAPJUMPTASK.data(), 0x05);
@@ -499,171 +491,10 @@ void ReFined::Critical::ProcessDeath()
 }
 
 
-void ReFined::Critical::HandleConfiguration()
-{
-	auto _configMemory = *reinterpret_cast<const uint64_t*>(YS::MENU::pint_config);
-	auto _configBitwise = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A4);
-
-	auto _menuOK = *YS::MENU::MenuType == 0x08 && (*YS::MENU::SubMenuType == 0x24 || *(YS::MENU::SubMenuType + 0x04) == 0x24);
-
-	if (!*YS::TITLE::IsTitle)
-	{
-		if (!CONFIG_FIRST_INIT)
-		{
-			ReFined::Critical::CONTROLLER_MODE = (_configBitwise & 0x2000) == 0x2000;
-			ReFined::Critical::SAVE_MODE = (_configBitwise & 0x0004) == 0x0004 ? 0x00 : ((_configBitwise & 0x0002) == 0x0002 ? 0x01 : 0x02);
-
-			bool _isQuadratum = *(YS::AREA::SaveData + 0x41A7);
-			const char* _fileName = _isQuadratum ? "field2d/%s/qd0command.2dd" : "field2d/%s/zz0command.2dd";
-
-			memcpy(COMMAND_MENU_ADDR, _fileName, 0x19);
-			memcpy(COMMAND_MENU_ADDR + 0x20, _fileName + 0x0B, 0x0E);
-
-			CONFIG_FIRST_INIT = true;
-		}
-
-		if (_menuOK)
-		{
-			if (!CONFIG_INIT)
-			{
-				if (!CONFIG_FETCH)
-				{
-					SETTING_MEMORY = _configBitwise;
-					CONFIG_FETCH = true;
-				}
-
-				bool _isQuadratum = *(YS::AREA::SaveData + 0x41A7);
-				uint8_t _configSize = 0x0B;
-
-				vector<uint8_t> _configArray
-				{
-					static_cast<uint8_t>((_configBitwise & 0x0010) == 0x0010 ? 0x01 : 0x00), // Field Camera
-					static_cast<uint8_t>((_configBitwise & 0x0020) == 0x0020 ? 0x01 : 0x00), // Right Stick Mode
-					static_cast<uint8_t>((_configBitwise & 0x0100) == 0x0100 ? 0x01 : 0x00), // Horizontal Camera Mode
-					static_cast<uint8_t>((_configBitwise & 0x0080) == 0x0080 ? 0x01 : 0x00), // Vertical Camera Mode
-					static_cast<uint8_t>((_configBitwise & 0x0200) == 0x0200 ? 0x00 : ((_configBitwise & 0x0400) == 0x0400 ? 0x01 : 0x02)), // Summon Animations
-					static_cast<uint8_t>((_configBitwise & 0x0008) == 0x0008 ? 0x00 : 0x01), // Navigational Map
-					static_cast<uint8_t>((_configBitwise & 0x0004) == 0x0004 ? 0x00 : ((_configBitwise & 0x0002) == 0x0002 ? 0x01 : 0x02)), // Autosave Mode
-					static_cast<uint8_t>((_configBitwise & 0x2000) == 0x2000 ? 0x00 : 0x01), // Controller Prompt Style
-					static_cast<uint8_t>((_configBitwise & 0x0001) == 0x0001 ? 0x00 : 0x01), // Vibration
-					static_cast<uint8_t>(_isQuadratum ? 0x02 : ((_configBitwise & 0x0040) == 0x0040 ? 0x01 : 0x00)), // Command Menu
-					static_cast<uint8_t>(*(YS::AREA::SaveData + 0x2498)) // Difficulty
-				};
-
-				if (_configMemory == 0x00)
-					return;
-
-				memcpy(reinterpret_cast<char*>(_configMemory), _configArray.data(), _configArray.size());
-
-				if (*reinterpret_cast<const int*>(YS::MENU::MenuType + 0x5C) == 0xAF20)
-				{
-					char _nopArray[0x04];
-					char _menuSelectInst[0x04];
-
-					fill(_nopArray, _nopArray + 0x04, 0x90);
-
-					memcpy(_menuSelectInst, MENUSELECT_OFFSET + 0x46, 0x04);
-					memcpy(MENUSELECT_OFFSET + 0x46, _nopArray, 0x04);
-
-					auto _pointPage = CalculatePointer(YS::MENU::pint_suboptionselect, { 0x12 });
-					auto _pointCurrent = CalculatePointer(YS::MENU::pint_suboptionselect, { 0x00 });
-					auto _pointMaximum = CalculatePointer(YS::MENU::pint_suboptionselect, { 0x16 });
-
-					memcpy(const_cast<char*>(_pointMaximum), &_configSize, 0x01);
-
-					uint8_t _pageCurrent = *_pointPage;
-					uint8_t _indexCurrent = *_pointCurrent;
-					uint8_t _pageAmount = _configSize - 0x09;
-
-					if (_pageCurrent >= _pageAmount)
-					{
-						uint8_t _indexCalcuation = _indexCurrent + (_pageCurrent - _pageAmount);
-
-						memcpy(const_cast<char*>(_pointPage), &_pageAmount, 0x01);
-						memcpy(const_cast<char*>(_pointCurrent), &_indexCalcuation, 0x01);
-					}
-
-					Tz::CmConfig::UpdateActive();
-
-					memcpy(MENUSELECT_OFFSET + 0x46, _menuSelectInst, 0x04);
-				}
-
-				CONFIG_INIT = true;
-			}
-
-			if (*reinterpret_cast<const int*>(YS::MENU::MenuType + 0x5C) == 0xAF20)
-			{
-				uint8_t _fetchConfig[0x0B];
-				memcpy(_fetchConfig, reinterpret_cast<char*>(_configMemory), 0x0B);
-
-				uint16_t _constructBitwise = (_fetchConfig[0x00] == 0x01 ? 0x0010 : 0x0000) |
-					(_fetchConfig[0x01] == 0x01 ? 0x0020 : 0x0000) |
-					(_fetchConfig[0x02] == 0x01 ? 0x0100 : 0x0000) |
-					(_fetchConfig[0x03] == 0x01 ? 0x0080 : 0x0000) |
-					(_fetchConfig[0x04] == 0x00 ? 0x0200 : (_fetchConfig[0x04] == 0x01 ? 0x0400 : 0x0000)) |
-					(_fetchConfig[0x05] == 0x00 ? 0x0008 : 0x0000) |
-					(_fetchConfig[0x06] == 0x00 ? 0x0004 : ((_fetchConfig[0x06] == 0x01 ? 0x0002 : 0x0000))) |
-					(_fetchConfig[0x07] == 0x00 ? 0x2000 : 0x0000) |
-					(_fetchConfig[0x08] == 0x00 ? 0x0001 : 0x0000) |
-					(_fetchConfig[0x09] >= 0x01 ? 0x0040 : 0x0000);
-
-				bool _switchFlag = true;
-				bool _isQuadratum = _fetchConfig[0x09] == 0x02;
-
-				const char* _fileName = _isQuadratum ? "field2d/%s/qd0command.2dd" : "field2d/%s/zz0command.2dd";
-
-				ReFined::Critical::CONTROLLER_MODE = (_constructBitwise & 0x2000) == 0x2000;
-				ReFined::Critical::SAVE_MODE = (_constructBitwise & 0x0004) == 0x0004 ? 0x00 : ((_constructBitwise & 0x0002) == 0x0002 ? 0x01 : 0x02);
-
-				memcpy(YS::AREA::SaveData + 0x41A7, &_isQuadratum, 0x01);
-
-				memcpy(COMMAND_MENU_ADDR, _fileName, 0x19);
-				memcpy(COMMAND_MENU_ADDR + 0x20, _fileName + 0x0B, 0x0E);
-
-				memcpy(YS::AREA::SaveData + 0x41A4, &_constructBitwise, 0x02);
-				memcpy(COMMAND_FLAG_ADDR, &_switchFlag, 0x01);
-			}
-
-			auto _pointLayout = CalculatePointer(YS::MENU::pint_camp2ld, { 0x00 });
-			auto _pointCurrent = CalculatePointer(YS::MENU::pint_suboptionselect, { 0x12 });
-
-			if (_pointCurrent != nullptr)
-			{
-				uint32_t _barFileOffset = *reinterpret_cast<const uint32_t*>(_pointLayout + 0x08);
-				uint32_t _campFileOffset = *reinterpret_cast<const uint32_t*>(_pointLayout + 0x28) - _barFileOffset;
-
-				uint8_t _pageCount = 0x0B - 0x09;
-				uint8_t _pageFactor = 0x18 * _pageCount;
-
-				auto _pageOffset = (_pageFactor / _pageCount) * *_pointCurrent;
-
-				auto _offsetCalc = 0x64 + _pageOffset;
-				auto _floatCalc = (0xC0 - _pageFactor) * 0.01F;
-				auto _factorCalc = 0x64 - (_pageFactor + 0x01) + _pageOffset;
-
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x21498), &_offsetCalc, 0x04);
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x2149C), &_offsetCalc, 0x04);
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x21528), &_offsetCalc, 0x04);
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x2152C), &_offsetCalc, 0x04);
-
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x21568), &_floatCalc, 0x04);
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x2156C), &_floatCalc, 0x04);
-
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x215B8), &_factorCalc, 0x04);
-				memcpy(const_cast<char*>(_pointLayout + _campFileOffset + 0x215BC), &_factorCalc, 0x04);
-			}
-		}
-
-		else if (!_menuOK && CONFIG_INIT)
-			CONFIG_INIT = false;
-	}
-
-	else if (*YS::TITLE::IsTitle && CONFIG_FIRST_INIT)
-		CONFIG_FIRST_INIT = false;
-}
-
 void ReFined::Critical::HandleIntro()
 {
+	uint16_t _fetchSettings = 0x0000;
+
 	if (*YS::TITLE::IsTitle)
 	{
 		if (INTRO_APPLIED)
@@ -671,22 +502,21 @@ void ReFined::Critical::HandleIntro()
 
 		ENFORCE_INTRO = *YS::TITLE::IntroSelect == 0x00;
 
-		SETTING_MEMORY = 0x0408 | 
-			(*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x204) == 0x00 ? 0x0001 : 0x0000) |
-			(*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x208) == 0x00 ? 0x0004 : (*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x208) == 0x01 ? 0x0002 : 0x0000)) |
-			(*(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x20C) == 0x00 ? 0x2000 : 0x0000);
+		_fetchSettings = 0x0408 | 
+			(*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x204) == 0x00 ? 0x0001 : 0x0000) |
+			(*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x208) == 0x00 ? 0x0004 : (*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x208) == 0x01 ? 0x0002 : 0x0000)) |
+			(*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x20C) == 0x00 ? 0x2000 : 0x0000);
 	}
 
 	else if (!*YS::TITLE::IsTitle && !INTRO_APPLIED && ENFORCE_INTRO && YS::AREA::Current->World == 0x02 && (YS::AREA::Current->Room == 0x01 || YS::AREA::Current->Room == 0x20))
 	{
-		memcpy(YS::AREA::SaveData + 0x41A4, &SETTING_MEMORY, 0x02);
+		memcpy(YS::AREA::SaveData + 0x41A4, &_fetchSettings, 0x02);
 
-		ReFined::Critical::SAVE_MODE = (SETTING_MEMORY & 0x0004) ? 0x00 : ((SETTING_MEMORY & 0x0002) == 0x02 ? 0x01 : 0x02);
-		ReFined::Critical::CONTROLLER_MODE = (SETTING_MEMORY & 0x2000) == 0x2000;
+		ReFined::Critical::SAVE_MODE = (_fetchSettings & 0x0004) ? 0x00 : ((_fetchSettings & 0x0002) == 0x02 ? 0x01 : 0x02);
+		ReFined::Critical::CONTROLLER_MODE = (_fetchSettings & 0x2000) == 0x2000;
 
 		ENFORCE_INTRO = false;
 		INTRO_APPLIED = true;
-		CONFIG_FIRST_INIT = true;
 	}
 }
 
@@ -841,15 +671,15 @@ void ReFined::Critical::AspectCorrection()
 				uint32_t _positiveDefault = 0x55;
 				uint32_t _negativeDefault = -0x55;
 
-				memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x21, &_positiveDefault, 0x04);
-				memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x29, &_negativeDefault, 0x04);
+				memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x21, &_positiveDefault, 0x04);
+				memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x29, &_negativeDefault, 0x04);
 			}
 		}
 
 		else if (_commandPointer != 0x00 && _eventPointer == 0x00 && *YS::AREA::IsInMap)
 		{
-			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x21, &POSITIVE_ASPECT_OFFSET, 0x04);
-			memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") + 0x29, &NEGATIVE_ASPECT_OFFSET, 0x04);
+			memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x21, &POSITIVE_ASPECT_OFFSET, 0x04);
+			memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x29, &NEGATIVE_ASPECT_OFFSET, 0x04);
 		}
 	}
 }

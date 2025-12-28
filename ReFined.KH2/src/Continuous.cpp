@@ -170,7 +170,8 @@ void ReFined::Continuous::AutosaveLogic()
 			if (SAVE_AREA.World == 0x00)
 				SAVE_AREA = *YS::AREA::Current;
 
-			bool _checkStatus = !*YS::MENU::IsMenu && _commandPointer != 0x00 && *YS::AREA::IsInMap && _mainPointer == 0x00 && *YS::AREA::BattleStatus == 0x00 && SAVE_AREA.World >= 0x02 && SYSTEM_LOADED && ReFined::Critical::SAVE_MODE != 0x02 && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00;
+			bool _isAutosave = (*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A4) & 0x0002) || (*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A4) & 0x0004);
+			bool _checkStatus = !*YS::MENU::IsMenu && _commandPointer != 0x00 && *YS::AREA::IsInMap && _mainPointer == 0x00 && *YS::AREA::BattleStatus == 0x00 && SAVE_AREA.World >= 0x02 && SYSTEM_LOADED && _isAutosave && *(dk::JUMPEFFECT::FadeStatus + 0x108) == 0x00;
 
 			if (!_checkStatus)
 			{
@@ -362,7 +363,7 @@ void ReFined::Continuous::AutosaveLogic()
 		free(_saveData);
 		free(_magicData);
 
-		if (ReFined::Critical::SAVE_MODE == 0x00)
+		if (*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A4) & 0x0004)
 		{
 			const char* _saveMessage = YS::MESSAGE::GetData(0x5702);
 			dk::INFORMATION::openInformationWindow(_saveMessage);
@@ -375,10 +376,11 @@ void ReFined::Continuous::AutosaveLogic()
 void ReFined::Continuous::EnforcePrompts()
 {
 	bool _isEnforced = *(PROMPT_INSTRUCTION + 0x06) == 0x00 ? true : false;
+	bool _fetchConfig = *reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A4) & 0x2000;
 
-	if (_isEnforced != ReFined::Critical::CONTROLLER_MODE)
+	if (_isEnforced != _fetchConfig)
 	{
-		bool _targetMode = ReFined::Critical::CONTROLLER_MODE ? 0x00 : 0x01;
+		bool _targetMode = _fetchConfig ? 0x00 : 0x01;
 
 		memcpy(PROMPT_INSTRUCTION + 0x06, &_targetMode, 0x01);
 		memcpy(PROMPT_MODE, &_targetMode, 0x01);
@@ -618,8 +620,6 @@ void ReFined::Continuous::HandleShake()
 		SHAKE_WRITTEN = false;
 	}
 }
-
-
 
 void ReFined::Continuous::ShowFormEXP()
 {

@@ -7,10 +7,10 @@
 
 using namespace std;
 
-namespace ReFined
+namespace YS
 {
-	class MemoryManager
-	{
+    class PANACEA_ALLOC
+    {
     public:
         static map<string, char*> MEMORY_BLOCK;
 
@@ -23,8 +23,8 @@ namespace ReFined
         static char* _allocInstance;
         static uint64_t _functionSpace;
 
-        static char* Fetch(string Input);
+        static char* Get(string Key);
+        static void Free(string Key);        
         static void Allocate(string  Key, size_t Size);
-        static void Free(string Key);
-	};
+    };
 }

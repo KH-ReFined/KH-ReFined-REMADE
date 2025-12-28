@@ -26,34 +26,30 @@ extern "C"
 
 		auto _checkSteam = FindModule("steam_api64.dll");
 
+		char* _nopArray = new char[0x10];
+		fill(_nopArray, _nopArray + 0x10, 0x90);
+
+		uint8_t _jumpByte = 0xEB;
+
 		if (_checkSteam)
 		{
-			vector<uint8_t> _nopArraySave(0x05);
-			uint8_t _jumpByte = 0xEB;
-
 			char* _checkSaveFunc = SignatureScan<char*>("\x40\x55\x56\x57\x48\x81\xEC\xA0\x00\x00\x00\x48\xC7\x44\x24\x38\xFE\xFF\xFF\xFF\x48\x89\x9C\x24\xD0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\x90\x00\x00\x00\x8B\xF1\x89\x0D\x00\x00\x00\x00\x89\x15\x00\x00\x00\x00\x33\xED\x8D\x5D\x01\x48\x39\x2D\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\xB9\x78\x01\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x44\x24\x30\x48\x85\xC0\x74\x1D", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxx????xx????xxxxxxxx????xx????xxxxxx????xxxxxxxxxx");
 			
-			memcpy(_checkSaveFunc + 0x189, _nopArraySave.data(), 0x05);
-			memcpy(_checkSaveFunc + 0x196, _nopArraySave.data(), 0x02);
+			memcpy(_checkSaveFunc + 0x189, _nopArray, 0x05);
+			memcpy(_checkSaveFunc + 0x196, _nopArray, 0x02);
 
 			memcpy(_checkSaveFunc + 0x1A1, &_jumpByte, 0x01);
 		}
 
 		else
 		{
-			vector<uint8_t> _nopArraySave(0x05);
-			uint8_t _jumpByte = 0xEB;
-
 			char* _checkSaveFunc = SignatureScan<char*>("\x40\x57\x48\x83\xEC\x50\x48\xC7\x44\x24\x30\xFE\xFF\xFF\xFF\x48\x89\x5C\x24\x70\x48\x89\x74\x24\x78\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x48\x8B\xF9\x89\x0D\x00\x00\x00\x00\x89\x15\x00\x00\x00\x00\x33\xF6\x48\x39\x35\x00\x00\x00\x00\x0F\x85\x3D\x01\x00\x00\xB9\x78\x01\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x44\x24\x38\x48\x85\xC0\x74\x1D\x45\x33\xC9\x44\x8B\x05", "xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx????xx????xxxxx????xxxxxxxxxxxx????xxxxxxxxxxxxxxxx");
 
-			memcpy(_checkSaveFunc + 0x138, _nopArraySave.data(), 0x05);
-			memcpy(_checkSaveFunc + 0x145, _nopArraySave.data(), 0x02);
+			memcpy(_checkSaveFunc + 0x138, _nopArray, 0x05);
+			memcpy(_checkSaveFunc + 0x145, _nopArray, 0x02);
 
 			memcpy(_checkSaveFunc + 0x150, &_jumpByte, 0x01);
 		}
-
-		char* _nopArray = new char[0x10];
-		fill(_nopArray, _nopArray + 0x10, 0x90);
 
 	    char* _magicClearFunc = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
 		char* _fadeReset = reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED;
@@ -150,19 +146,20 @@ extern "C"
 
 		// ======================================================== //
 
-		ReFined::MemoryManager::Allocate("CONFIG_MEMORY", 0x200);
-		ReFined::MemoryManager::Allocate("INTRO_MEMORY", 0x300);
+		YS::PANACEA_ALLOC::Allocate("CONFIG_MEMORY", 0x200);
+		YS::PANACEA_ALLOC::Allocate("INTRO_MEMORY", 0x300);
 
 		ReFined::IntroMenu::Submit();
-		ReFined::ConfigMenu::Submit();
 		ReFined::Continue::Submit();
+
+		Tz::HookConfig::Submit();
 
 		// ======================================================== //
 
 		// Create a memory space for the Gauge overrider. This replacement function is long, and replacing it for each function space requires exactly that. Space.
 		// As such I just create an all-encompassing function in there, and redirect and and all functions that use this very specific maths to here.
 
-		ReFined::MemoryManager::Allocate("GAUGE_ASPECT_OVERRIDE", 0x100);
+		YS::PANACEA_ALLOC::Allocate("GAUGE_ASPECT_OVERRIDE", 0x100);
 
 		// The function that will do the math.
 		// P.S. - Please excuse me using literal byte arrays for this. I do not have nor want to use an assembler.
@@ -186,7 +183,7 @@ extern "C"
 			0x41, 0xFF, 0xE1				// jmp r9
 		};
 
-		memcpy(ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE"), _gaugeFunc.data(), _gaugeFunc.size());
+		memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE"), _gaugeFunc.data(), _gaugeFunc.size());
 
 		// Fetch all functions that will make use of the function above.
 
@@ -217,7 +214,7 @@ extern "C"
 
 			memcpy(_fetchFunctions[i], _redirectFunc.data(), 0x0A);
 
-			uint32_t _funcDifference = ReFined::MemoryManager::Fetch("GAUGE_ASPECT_OVERRIDE") - (_fetchFunctions[i] + 0x0E);
+			uint32_t _funcDifference = YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") - (_fetchFunctions[i] + 0x0E);
 			memcpy(_fetchFunctions[i] + 0x0A, &_funcDifference, 0x04);
 		}
 
@@ -373,7 +370,7 @@ extern "C"
 						bool** introSeek = (bool**)GetProcAddress(dllhandle, "INTRO_SEEK");
 
 						assert(introSeek != nullptr);
-						*introSeek = reinterpret_cast<bool*>(ReFined::MemoryManager::Fetch("INTRO_MEMORY") + 0x200 + ((ReFined::IntroMenu::Children.size() - 1) * 0x04));
+						*introSeek = reinterpret_cast<bool*>(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200 + ((ReFined::IntroMenu::Children.size() - 1) * 0x04));
 					}
 
 					if (funcInit)
@@ -453,8 +450,8 @@ extern "C"
 				{
 					uint8_t _faceCount = *_allocShopface;
 
-					ReFined::MemoryManager::Allocate("SHOPFACE_NAMES", 0x10 * _faceCount);
-					ReFined::MemoryManager::Allocate("SHOPFACE_STRUCTS", 0x10 * _faceCount);
+					YS::PANACEA_ALLOC::Allocate("SHOPFACE_NAMES", 0x10 * _faceCount);
+					YS::PANACEA_ALLOC::Allocate("SHOPFACE_STRUCTS", 0x10 * _faceCount);
 
 					for (int i = 0; i < _faceCount; i++)
 					{
@@ -463,15 +460,15 @@ extern "C"
 
 						memcpy(_faceName, _allocShopface + 0x02 + 0x10 + (0x10 * i), 0x0E);
 
-						auto _calculateNameAddr = reinterpret_cast<uint64_t>(ReFined::MemoryManager::Fetch("SHOPFACE_NAMES") + 0x10 * i);
+						auto _calculateNameAddr = reinterpret_cast<uint64_t>(YS::PANACEA_ALLOC::Get("SHOPFACE_NAMES") + 0x10 * i);
 
-						memcpy(ReFined::MemoryManager::Fetch("SHOPFACE_STRUCTS") + 0x10 * i, &_objectID, 0x02);
-						memcpy(ReFined::MemoryManager::Fetch("SHOPFACE_STRUCTS") + (0x10 * i) + 0x08, &_calculateNameAddr, 0x08);
+						memcpy(YS::PANACEA_ALLOC::Get("SHOPFACE_STRUCTS") + 0x10 * i, &_objectID, 0x02);
+						memcpy(YS::PANACEA_ALLOC::Get("SHOPFACE_STRUCTS") + (0x10 * i) + 0x08, &_calculateNameAddr, 0x08);
 
-						memcpy(ReFined::MemoryManager::Fetch("SHOPFACE_NAMES") + 0x10 * i, _faceName, 0x0E);
+						memcpy(YS::PANACEA_ALLOC::Get("SHOPFACE_NAMES") + 0x10 * i, _faceName, 0x0E);
 					}
 
-					char* _structOffset = reinterpret_cast<char*>(ReFined::MemoryManager::Fetch("SHOPFACE_STRUCTS"));
+					char* _structOffset = reinterpret_cast<char*>(YS::PANACEA_ALLOC::Get("SHOPFACE_STRUCTS"));
 
 					RedirectLEA(_fetchFirstShopface + 0x53, _structOffset);
 					RedirectLEA(_fetchThirdShopface + 0x50, _structOffset);
@@ -489,6 +486,8 @@ extern "C"
 
 		else
 		{
+			Tz::HookConfig::Handle();
+
 			ReFined::Demand::TriggerReset();
 
 			ReFined::Critical::ProcessDeath();
@@ -497,7 +496,6 @@ extern "C"
 			ReFined::Critical::RegisterMovement();
 			ReFined::Critical::RetryBattles();
 
-			ReFined::Critical::HandleConfiguration();
 			ReFined::Critical::HandleIntro();
 			ReFined::Critical::AspectCorrection();
 

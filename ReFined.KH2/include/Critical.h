@@ -7,7 +7,6 @@
 #include <iostream>
 #include <Windows.h>
 #include <algorithm>
-#include <memory_manager.h>
 #include <sstream>
 #include <iomanip>
 
@@ -28,6 +27,7 @@
 #include "command_draw.h"
 #include "member_table.h"
 #include "continue_menu.h"
+#include "panacea_alloc.h"
 
 #include "SigScan.h"
 
@@ -47,7 +47,6 @@ namespace ReFined
 		static void ShowInformation();
 		static void ProcessDeath();
 		static void RetryBattles();
-		static void HandleConfiguration();
 		static void HandleIntro();
 		static void AspectCorrection();
 	};

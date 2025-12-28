@@ -19,6 +19,7 @@
 #include "softreset.h"
 #include "sequence.h"
 #include "next_form.h"
+#include "panacea_alloc.h"
 
 #include "Demand.h"
 #include "Continuous.h"
@@ -27,7 +28,6 @@
 #include "intro_menu.h"
 #include "config_menu.h"
 #include "continue_menu.h"
-#include "memory_manager.h"
 #include "weapon_entry.h"
 
 #include "ini.h"

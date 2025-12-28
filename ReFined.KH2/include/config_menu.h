@@ -3,34 +3,36 @@
 #include <cstdint>
 #include <vector>
 
-#include "memory_manager.h"
+#include "information.h"
+#include "area.h"
+#include "gauge.h"
+#include "title.h"
+#include "steam.h"
+#include "party.h"
+#include "menu.h"
+#include "message.h"
+#include "cmconfig.h"
+#include "softreset.h"
+#include "sequence.h"
+#include "next_form.h"
+#include "panacea_alloc.h"
 
 using namespace std;
 
-namespace ReFined
+namespace Tz
 {
-	class ConfigMenu
+	class HookConfig
 	{
-
 		public:
-			static struct Entry
-			{
-			public:
-				uint16_t Count;
-				uint16_t TitleID;
-				vector<uint16_t> ButtonIDs;
-				vector<uint16_t> DescriptionIDs;
-
-				Entry(uint16_t count, uint16_t titleID, vector<uint16_t> buttonIDs, vector<uint16_t> descriptionIDs);
-			};
-
+			static vector<vector<uint16_t>> Entries;
 			static vector<char*> CONFIG_OFFSETS;
 
-			static vector<Entry> Children;
-
 			static void Submit();
+			static void Handle();
 
-			static void Add(int Index, Entry Input);
 			static void Remove(int Index);
+			static void Add(int Index, vector<uint16_t> Input);
+
+			static uint8_t GetValue(uint16_t titleID);
 	};
 }
