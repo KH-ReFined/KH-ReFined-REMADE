@@ -93,6 +93,15 @@ bool SHAKE_WRITTEN;
 
 char* VIEWPORT3D = ResolveRelativeAddress<char*>("\x48\x8B\xC4\x57\x41\x56\x41\x57\x48\x81\xEC\x50\x01\x00\x00\x48\xC7\x44\x24\x20\xFE\xFF\xFF\xFF\x48\x89\x58\x10\x48\x89\x68\x18\x48\x89\x70\x20\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\x40\x01\x00\x00\x48\x8B\xE9\x33\xD2\x41\xB8\x00\x01\x00\x00\x48\x8D\x4C\x24\x30\xE8\x00\x00\x00\x00\x45\x33\xFF", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx", 0x311);
 
+uint16_t CURRENT_MUSIC = 0xFFFF;
+char* MUSIC_PATH = SignatureScan<char*>("\x62\x67\x6D\x2F\x6D\x75\x73\x69\x63\x25\x30\x33\x64\x2E\x77\x69\x6E\x33\x32\x2E\x73\x63\x64", "xxxxxxxxxxxxxxxxxxxxxxx");
+
+char* FIELD_ALLOC;
+char* BATTLE_ALLOC;
+
+bool TRANSFER_FIELD = false;
+bool TRANSFER_BATTLE = false;
+
 // Fixes an odd issue where summon animations may cause both field and battle musics to play.
 void ReFined::Continuous::FixSummonBGM()
 {
@@ -686,4 +695,109 @@ void ReFined::Continuous::ShowSummonEXP()
 
 	else if (*(YS::AREA::IsInMap) == 0 || *(YS::TITLE::IsTitle) == 1 || _surrSummID == 0x00)
 		PAST_EXP_SUMM = 0x00;
+}
+
+void ReFined::Continuous::HotswapMusic()
+{
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchMusic = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+
+	if (*YS::AREA::IsInMap)
+	{
+		if (CURRENT_MUSIC == 0xFFFF)
+			CURRENT_MUSIC = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+
+		else if (CURRENT_MUSIC != _fetchMusic)
+		{
+			string _constructPath = "bgm/music%03d.win32.scd";
+			string _editPath;
+
+			if (_fetchMusic == 0x0080)
+				_constructPath = "bgm/ps2md%03d.win32.scd";
+
+			else if (_fetchMusic == 0x0100)
+				_constructPath = "bgm/mdbgm%03d.win32.scd";
+
+			memcpy(MUSIC_PATH, _constructPath.c_str(), 0x17);
+
+			_editPath = _constructPath;
+			_editPath.replace(_editPath.begin() + 0x09, _editPath.begin() + 0x0D, "000");
+
+			auto _fetchMode = *YS::AREA::BattleStatus == 0x00 ? 0x00 : 0x01;
+
+			auto _fetchVolumeStart = *reinterpret_cast<uint32_t*>(YS::SOUND::CurrentMusic + 0x04);
+			auto _fetchVolumeFinish = *reinterpret_cast<uint32_t*>(YS::SOUND::CurrentMusic + 0x08);
+
+			auto _fetchCurrentField = *reinterpret_cast<uint16_t*>(YS::SOUND::CurrentMusic);
+			auto _fetchCurrentBattle = *reinterpret_cast<uint16_t*>(YS::SOUND::CurrentMusic + 0x10);
+
+			stringstream _streamField;
+			_streamField << setw(0x03) << setfill('0') << _fetchCurrentField;
+
+			stringstream _streamBattle;
+			_streamBattle << setw(0x03) << setfill('0') << _fetchCurrentBattle;
+
+			auto _musicPathField = _editPath.replace(_editPath.begin() + 0x09, _editPath.begin() + 0x0C, _streamField.str());
+			auto _musicPathBattle = _editPath.replace(_editPath.begin() + 0x09, _editPath.begin() + 0x0C, _streamBattle.str());
+
+			auto _sizeField = YS::FILE::GetSize(_musicPathField.c_str());
+			auto _sizeBattle = YS::FILE::GetSize(_musicPathBattle.c_str());
+
+			if (TRANSFER_FIELD)
+				goto FIELD_AFTERMATH;
+
+			if (TRANSFER_BATTLE)
+				goto BATTLE_AFTERMATH;
+
+			FIELD_ALLOC = YS::AREA::Alloc(_sizeField);
+
+			if (FIELD_ALLOC != nullptr)
+			{
+				auto _loadField = YS::FILE::Read(_musicPathField.c_str(), FIELD_ALLOC);
+
+				if (_fetchMode == 0x00 && _fetchVolumeStart != 0x00)
+					YS::SOUND::KillBGM(0x00);
+
+				YS::SOUND::SetTransfer(0x00, 0x02, FIELD_ALLOC, _sizeField, nullptr, nullptr);
+				TRANSFER_FIELD = true;
+			}
+
+			FIELD_AFTERMATH:
+
+			if (*YS::SOUND::IsTransferActive != 0x00)
+				return;
+
+			YS::AREA::Free(FIELD_ALLOC);
+			TRANSFER_FIELD = false;
+
+			if (_fetchMode == 0x00 && _fetchVolumeStart != 0x00)
+				YS::SOUND::StartBGM(0x00, 0x3000, 0x3000, 0x00);
+
+			BATTLE_ALLOC = YS::AREA::Alloc(_sizeBattle);
+
+			if (BATTLE_ALLOC != nullptr)
+			{
+				auto _loadBattle = YS::FILE::Read(_musicPathBattle.c_str(), BATTLE_ALLOC);
+
+				if (_fetchMode == 0x01 && _fetchVolumeStart != 0x00)
+					YS::SOUND::KillBGM(0x01);
+
+				YS::SOUND::SetTransfer(0x01, 0x02, BATTLE_ALLOC, _sizeBattle, nullptr, nullptr);
+				TRANSFER_BATTLE = true;
+			}
+
+			BATTLE_AFTERMATH:
+
+			if (*YS::SOUND::IsTransferActive != 0x00)
+				return;
+
+			YS::AREA::Free(BATTLE_ALLOC);
+			TRANSFER_BATTLE = false;
+
+			if (_fetchMode == 0x01 && _fetchVolumeStart != 0x00)
+				YS::SOUND::StartBGM(0x01, 0x3000, 0x3000, 0x00);
+
+			CURRENT_MUSIC = _fetchMusic;
+		}
+	}
 }

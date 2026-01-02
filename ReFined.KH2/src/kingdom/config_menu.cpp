@@ -198,7 +198,7 @@ void Tz::HookConfig::Handle()
 						auto _fetchBitwise = Entries[i][0x02 + (Entries[i][0x00] * 0x02) + z];
 
 						if ((_checkBitwise & _fetchBitwise) == 0x0000)
-							_checkBitwise | _fetchBitwise;
+							_checkBitwise |= _fetchBitwise;
 					}
 				}
 				
@@ -310,7 +310,7 @@ void Tz::HookConfig::Handle()
 				uint32_t _barFileOffset = *reinterpret_cast<const uint32_t*>(_pointLayout + 0x08);
 				uint32_t _campFileOffset = *reinterpret_cast<const uint32_t*>(_pointLayout + 0x28) - _barFileOffset;
 
-				uint8_t _pageCount = 0x0B - 0x09;
+				uint8_t _pageCount = Entries.size() - 0x09;
 				uint8_t _pageFactor = 0x18 * _pageCount;
 
 				auto _pageOffset = (_pageFactor / _pageCount) * *_pointCurrent;
