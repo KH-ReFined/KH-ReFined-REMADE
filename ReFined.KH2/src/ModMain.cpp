@@ -68,6 +68,65 @@ extern "C"
 			memcpy(_checkSaveFunc + 0x150, &_jumpByte, 0x01);
 		}
 
+		char* _lockOnFunc = SignatureScan<char*>("\x48\x89\x5C\x24\x10\x48\x89\x74\x24\x18\x55\x57\x41\x56\x48\x8B", "xxxxxxxxxxxxxxxx");
+		char* _lockHelperFunc = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\x8B\x0D", "xxxxxxxxxxx");
+		char* _floatingPoints = SignatureScan<char*>("\x00\x00\x80\xBF\xF3\x04\xB5\xBF\x00\x00\x00\x00\x00\x00\xE0\xBF", "xxxxxxxxxxxxxxxx");
+
+		vector<uint8_t> _instLockOnFix
+		{
+			0x49, 0x8B, 0x06,
+			0xB9, 0x00, 0x02, 0x00, 0x00,
+			0x48, 0x85, 0xC8,
+			0x0F, 0x84, 0xBF, 0x03, 0x00, 0x00,
+			0x45, 0x8B, 0x6E, 0xFC,
+			0x45, 0x85, 0xED,
+			0x0F, 0x85, 0xB6, 0x02, 0x00, 0x00,
+			0xF3, 0x0F, 0x10, 0x1D, 0x00, 0x00, 0x00, 0x00,
+			0x4C, 0x8B, 0x47, 0x38,
+			0x48, 0x8D, 0x55, 0xC8,
+			0x48, 0x8D, 0x4F, 0x04,
+			0xE8, 0xC6, 0x05, 0xFE, 0xFF,
+			0x48, 0x8D, 0x4D, 0xB0,
+			0x0F, 0x10, 0x00,
+			0x0F, 0x11, 0x45, 0xB0,
+			0x8B, 0x40, 0x10,
+			0x89, 0x45, 0xC0,
+			0xE8, 0x80, 0x0F, 0xFE, 0xFF,
+			0x84, 0xC0,
+			0x75, 0x12,
+			0x45, 0x85, 0xED,
+			0x75, 0x26,
+			0x41, 0xFF, 0xC5,
+			0xF3, 0x0F, 0x10, 0x1D, 0x00, 0x00, 0x00, 0x00,
+			0xEB, 0xC3,
+			0x41, 0xFF, 0x46, 0xFC,
+			0x48, 0x8D, 0x55, 0xB0,
+			0x48, 0x8B, 0xCF,
+			0xE8, 0x1A, 0xFE, 0xFF, 0xFF,
+			0x48, 0x8D, 0x4D, 0xB0,
+			0xE8, 0x00, 0x00, 0x00, 0x00,
+			0xE9, 0x53, 0x02, 0x00, 0x00
+		};
+
+		uint32_t _offsetCalc = _lockHelperFunc - (_lockOnFunc + 0x16F);
+
+		uint32_t _floatCalcFirst = _floatingPoints - (_lockOnFunc + 0x119);
+		uint32_t _floatCalcSecond = (_floatingPoints - 0x1C8) - (_lockOnFunc + 0x154);
+
+		memcpy(_lockOnFunc + 0xF3, _instLockOnFix.data(), _instLockOnFix.size());
+		memcpy(_lockOnFunc + 0x16B, &_offsetCalc, 0x04);
+
+		memcpy(_lockOnFunc + 0x115, &_floatCalcFirst, 0x04);
+		memcpy(_lockOnFunc + 0x150, &_floatCalcSecond, 0x04);
+		
+		vector<uint8_t> _instLockOnContinued
+		{
+			0x41, 0xC7, 0x46, 0xFC, 0x00, 0x00, 0x00, 0x00,
+			0xE9, 0xF7, 0xFE, 0xFF, 0xFF
+		};
+
+		memcpy(_lockOnFunc + 0x4C3, _instLockOnContinued.data(), _instLockOnContinued.size());
+
 	    char* _magicClearFunc = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
 		char* _fadeReset = reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED;
 
@@ -650,6 +709,16 @@ extern "C"
 			if (_mainAudioConfig[0] > 0x01)
 				Tz::HookConfig::Add(Tz::HookConfig::Entries.size() - 0x03, _mainAudioConfig);
 
+			if (!FindModule("ModuleRF-ShortcutSets.dll"))
+			{
+				auto _currentTextPtr = YS::MESSAGE::GetData(0x051F);
+
+				auto _soraText = YS::MESSAGE::GetData(0x572E);
+				auto _soraSize = YS::MESSAGE::GetSize(_soraText);
+
+				memcpy(const_cast<char*>(_currentTextPtr), _soraText, _soraSize + 0x01);
+			}
+
 			IS_INIT = true;
 		}
 
@@ -683,7 +752,9 @@ extern "C"
 			ReFined::Continuous::HandleFrameLimiter();
 			ReFined::Continuous::ShowFormEXP();
 			ReFined::Continuous::ShowSummonEXP();
+
 			ReFined::Continuous::HotswapMusic();
+			ReFined::Continuous::HotswapObjects();
 
 			for (auto _module : moduleexec)
 				_module();
