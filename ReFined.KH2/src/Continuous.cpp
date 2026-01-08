@@ -102,6 +102,14 @@ char* BATTLE_ALLOC;
 bool TRANSFER_FIELD = false;
 bool TRANSFER_BATTLE = false;
 
+size_t FETCH_SIZE_FIRST = 0xFFFF;
+size_t FETCH_SIZE_SECOND = 0xFFFF;
+
+uint16_t CURRENT_OBJECTS = 0xFFFF;
+
+char* MDLX_PATH = SignatureScan<char*>("\x6F\x62\x6A\x2F\x25\x73\x2E\x6D\x64\x6C\x78\x00\x00\x00\x00\x00", "xxxxxxxxxxxxxxxx");
+char* APDX_PATH = SignatureScan<char*>("\x6F\x62\x6A\x2F\x25\x73\x2E\x61\x2E\x25\x73\x00\x00\x00\x00\x00", "xxxxxxxxxxxxxxxx");
+
 // Fixes an odd issue where summon animations may cause both field and battle musics to play.
 void ReFined::Continuous::FixSummonBGM()
 {
@@ -702,6 +710,15 @@ void ReFined::Continuous::HotswapMusic()
 	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
 	auto _fetchMusic = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
 
+	if (FETCH_SIZE_FIRST == 0xFFFF)
+	{
+		FETCH_SIZE_FIRST = YS::FILE::GetSize("bgm/ps2md050.win32.scd");
+		FETCH_SIZE_SECOND = YS::FILE::GetSize("bgm/mdbgm050.win32.scd");
+	}
+
+	if (*YS::TITLE::IsTitle)
+			CURRENT_MUSIC = 0xFFFF;
+
 	if (*YS::AREA::IsInMap)
 	{
 		if (CURRENT_MUSIC == 0xFFFF)
@@ -712,11 +729,27 @@ void ReFined::Continuous::HotswapMusic()
 			string _constructPath = "bgm/music%03d.win32.scd";
 			string _editPath;
 
-			if (_fetchMusic == 0x0080)
+			if (_fetchMusic == 0x0080 && FETCH_SIZE_FIRST != 0x00)
 				_constructPath = "bgm/ps2md%03d.win32.scd";
 
-			else if (_fetchMusic == 0x0100)
+			else if (_fetchMusic == 0x0080)
+			{
+				_fetchMusic -= 0x0080;
+				_fetchConfig -= 0x0080;
+
+				*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0080;
+			}
+
+			if (_fetchMusic == 0x0100 && FETCH_SIZE_SECOND != 0x00)
 				_constructPath = "bgm/mdbgm%03d.win32.scd";
+
+			else if (_fetchMusic == 0x0100)
+			{
+				_fetchMusic -= 0x0100;
+				_fetchConfig -= 0x0100;
+
+				*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0100;
+			}
 
 			memcpy(MUSIC_PATH, _constructPath.c_str(), 0x17);
 
@@ -749,7 +782,7 @@ void ReFined::Continuous::HotswapMusic()
 			if (TRANSFER_BATTLE)
 				goto BATTLE_AFTERMATH;
 
-			FIELD_ALLOC = YS::AREA::Alloc(_sizeField);
+			FIELD_ALLOC = (char*)malloc(_sizeField);
 
 			if (FIELD_ALLOC != nullptr)
 			{
@@ -767,13 +800,13 @@ void ReFined::Continuous::HotswapMusic()
 			if (*YS::SOUND::IsTransferActive != 0x00)
 				return;
 
-			YS::AREA::Free(FIELD_ALLOC);
+			free(FIELD_ALLOC);
 			TRANSFER_FIELD = false;
 
 			if (_fetchMode == 0x00 && _fetchVolumeStart != 0x00)
 				YS::SOUND::StartBGM(0x00, 0x3000, 0x3000, 0x00);
 
-			BATTLE_ALLOC = YS::AREA::Alloc(_sizeBattle);
+			BATTLE_ALLOC = (char*)malloc(_sizeBattle);
 
 			if (BATTLE_ALLOC != nullptr)
 			{
@@ -791,13 +824,103 @@ void ReFined::Continuous::HotswapMusic()
 			if (*YS::SOUND::IsTransferActive != 0x00)
 				return;
 
-			YS::AREA::Free(BATTLE_ALLOC);
+			free(BATTLE_ALLOC);
 			TRANSFER_BATTLE = false;
 
 			if (_fetchMode == 0x01 && _fetchVolumeStart != 0x00)
 				YS::SOUND::StartBGM(0x01, 0x3000, 0x3000, 0x00);
 
 			CURRENT_MUSIC = _fetchMusic;
+		}
+	}
+	
+	else if (!*YS::AREA::IsInMap && !*YS::TITLE::IsTitle && CURRENT_MUSIC != _fetchMusic)
+	{
+		if (CURRENT_MUSIC == 0xFFFF)
+			CURRENT_MUSIC = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+
+		string _constructPath = "bgm/music%03d.win32.scd";
+		string _editPath;
+
+		if (_fetchMusic == 0x0080 && FETCH_SIZE_FIRST != 0x00)
+			_constructPath = "bgm/ps2md%03d.win32.scd";
+
+		else if (_fetchMusic == 0x0080)
+		{
+			_fetchMusic -= 0x0080;
+			_fetchConfig -= 0x0080;
+
+			*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0080;
+		}
+
+		if (_fetchMusic == 0x0100 && FETCH_SIZE_SECOND != 0x00)
+			_constructPath = "bgm/mdbgm%03d.win32.scd";
+
+		else if (_fetchMusic == 0x0100)
+		{
+			_fetchMusic -= 0x0100;
+			_fetchConfig -= 0x0100;
+
+			*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0100;
+		}
+
+		memcpy(MUSIC_PATH, _constructPath.c_str(), 0x17);
+
+		CURRENT_MUSIC = _fetchConfig;
+	}
+}
+
+void ReFined::Continuous::HotswapObjects()
+{
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	if (!*YS::AREA::IsInMap)
+	{
+		if (!*YS::TITLE::IsTitle)
+		{
+			if (CURRENT_OBJECTS == 0xFFFF)
+				CURRENT_OBJECTS = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+			string _fetchPath = "obj/";
+
+			if (_fetchObject == 0x0200)
+				_fetchPath = "mdl/";
+
+			else if (_fetchObject == 0x0400)
+				_fetchPath = "o3d/";
+
+			memcpy(MDLX_PATH, _fetchPath.c_str(), 0x04);
+			memcpy(APDX_PATH, _fetchPath.c_str(), 0x04);
+		}
+
+		else
+			CURRENT_OBJECTS = 0xFFFF;
+	}
+
+	if (*YS::AREA::IsInMap)
+	{
+		if (CURRENT_OBJECTS == 0xFFFF)
+			CURRENT_OBJECTS = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+
+		else if (CURRENT_OBJECTS != _fetchObject)
+		{
+			string _fetchPath = "obj/";
+
+			if (_fetchObject == 0x0200)
+				_fetchPath = "mdl/";
+
+			else if (_fetchObject == 0x0400)
+				_fetchPath = "o3d/";
+
+			memcpy(MDLX_PATH, _fetchPath.c_str(), 0x04);
+			memcpy(APDX_PATH, _fetchPath.c_str(), 0x04);
+
+			if (!*YS::MENU::IsMenu)
+			{
+				YS::AREA::MapJump(YS::AREA::Current, 0x00, 0x00, false);
+				CURRENT_OBJECTS = _fetchObject;
+			}
 		}
 	}
 }

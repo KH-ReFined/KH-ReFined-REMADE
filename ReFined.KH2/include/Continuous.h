@@ -19,5 +19,6 @@ namespace ReFined
 			static void ShowSummonEXP();
 			static void HandleShake();
 			static void HotswapMusic();
+			static void HotswapObjects();
 	};
 }
