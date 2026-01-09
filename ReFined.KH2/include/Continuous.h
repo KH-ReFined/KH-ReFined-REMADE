@@ -20,5 +20,6 @@ namespace ReFined
 			static void HandleShake();
 			static void HotswapMusic();
 			static void HotswapObjects();
+			static void EnforceControls();
 	};
 }

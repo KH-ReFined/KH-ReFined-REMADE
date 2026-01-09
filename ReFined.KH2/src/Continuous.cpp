@@ -110,6 +110,20 @@ uint16_t CURRENT_OBJECTS = 0xFFFF;
 char* MDLX_PATH = SignatureScan<char*>("\x6F\x62\x6A\x2F\x25\x73\x2E\x6D\x64\x6C\x78\x00\x00\x00\x00\x00", "xxxxxxxxxxxxxxxx");
 char* APDX_PATH = SignatureScan<char*>("\x6F\x62\x6A\x2F\x25\x73\x2E\x61\x2E\x25\x73\x00\x00\x00\x00\x00", "xxxxxxxxxxxxxxxx");
 
+uint8_t CONTROL_SCHEME = 0x00;
+
+uint32_t PAST_LOCKON;
+bool LOCKON_PLAY = false;
+
+vector<uint8_t> SCHEME_VANILLA;
+vector<uint8_t> SCHEME_EDITED;
+
+char* LOCKON_FUNCTION = SignatureScan<char*>("\x48\x89\x5C\x24\x10\x48\x89\x74\x24\x18\x55\x57\x41\x56\x48\x8B", "xxxxxxxxxxxxxxxx");
+char* LOCKON_FLOATS = SignatureScan<char*>("\x00\x00\x80\xBF\xF3\x04\xB5\xBF\x00\x00\x00\x00\x00\x00\xE0\xBF", "xxxxxxxxxxxxxxxx");
+
+char* LOCKON_CHANGE = ResolveFunctionFromCall<char*>("\x48\x89\x5C\x24\x10\x48\x89\x74\x24\x18\x55\x57\x41\x56\x48\x8B", "xxxxxxxxxxxxxxxx", 0x16A);
+uint32_t* LOCKON_TARGET = ResolveRelativeAddress<uint32_t*>(LOCKON_CHANGE, 0x0B);
+
 // Fixes an odd issue where summon animations may cause both field and battle musics to play.
 void ReFined::Continuous::FixSummonBGM()
 {
@@ -923,4 +937,68 @@ void ReFined::Continuous::HotswapObjects()
 			}
 		}
 	}
+}
+
+void ReFined::Continuous::EnforceControls()
+{
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A4);
+	auto _fetchControl = (_fetchConfig & 0x4000) == 0x4000 ? 0x00 : ((_fetchConfig & 0x8000) == 0x8000 ? 0x01 : 0x02);
+
+	auto _fetchChange = *(YS::HARDPAD::Input - 0x02);
+	auto _fetchTarget = *LOCKON_TARGET;
+
+	if (SCHEME_VANILLA.size() == 0x00)
+	{
+		SCHEME_EDITED =
+		{
+			0x41, 0x8B, 0x06, // mov eax, [r14]
+			0x66, 0xA9, 0x00, 0x01, // test ax, 0x0100
+			0x74, 0x0A, // je 0x0A
+			0xF3, 0x0F, 0x10, 0x1D, 0x00, 0x00, 0x00, 0x00, // movss xmm3, [_floatCalcFirst]
+			0xEB, 0x19, // jmp 0x19
+			0x66, 0xA9, 0x00, 0x02, // test ax, 0x0200
+			0x75, 0x0B, // jne 0x0B
+			0x41, 0xC7, 0x46, 0xFC, 0x00, 0x00, 0x00, 0x00, // mov [r14 - 0x04], 0x00
+			0xEB, 0x59, // jmp 0x59
+			0x90, // nop
+			0xF3, 0x0F, 0x10, 0x1D, 0x00, 0x00, 0x00, 0x00, // movss xmm3, [_floatCalcSecond]
+			0x41, 0x8B, 0x4E, 0xFC, // mov ecx, [r14 - 0x04]
+			0x85, 0xC9, //test ecx, ecx
+			0x75, 0x48, // jne 0x48
+			0x41, 0xFF, 0x46, 0xFC // inc [r14 - 0x04]
+		};
+
+		SCHEME_VANILLA.resize(SCHEME_EDITED.size());
+		memcpy(SCHEME_VANILLA.data(), LOCKON_FUNCTION + 0xF3, SCHEME_EDITED.size());
+	}
+
+	if (_fetchControl != CONTROL_SCHEME)
+	{
+		if (_fetchControl == 0x02)
+			memcpy(LOCKON_FUNCTION + 0xF3, SCHEME_VANILLA.data(), SCHEME_VANILLA.size());
+
+		else
+		{
+			uint32_t _floatCalcFirst = LOCKON_FLOATS - (LOCKON_FUNCTION + 0x104) - (_fetchControl == 0x00 ? 0x00 : 0x1C8);
+			uint32_t _floatCalcSecond = (LOCKON_FLOATS - 0x1C8) - (LOCKON_FUNCTION + 0x11F) + (_fetchControl == 0x00 ? 0x00 : 0x1C8);
+
+			memcpy(LOCKON_FUNCTION + 0xF3, SCHEME_EDITED.data(), SCHEME_EDITED.size());
+
+			memcpy(LOCKON_FUNCTION + 0x100, &_floatCalcFirst, 0x04);
+			memcpy(LOCKON_FUNCTION + 0x11B, &_floatCalcSecond, 0x04);
+		}
+
+		CONTROL_SCHEME = _fetchControl;
+	}
+
+	if (PAST_LOCKON != _fetchTarget && !LOCKON_PLAY)
+	{
+		YS::SOUND::PlaySFX(7);
+		LOCKON_PLAY = true;
+	}
+
+	else if (LOCKON_PLAY)
+		LOCKON_PLAY = false;
+
+	PAST_LOCKON = _fetchTarget;
 }
