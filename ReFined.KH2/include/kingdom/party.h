@@ -15,6 +15,9 @@ extern "C"
 			using SetWeapon_t = void(*)(char* party_ptr, int entry_id, int hand);
 			static SetWeapon_t SetWeapon;
 
+			using ExecuteCommand_t = void(*)(char* playerObject, char* command);
+			static ExecuteCommand_t ExecuteCommand;
+
 			static char* KeybladePAX;
 
 			// In all honesty, reimplementing this seemed like the far more stable option.
