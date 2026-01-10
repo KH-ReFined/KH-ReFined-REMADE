@@ -78,6 +78,7 @@ extern "C"
 		uint8_t* _battleStatus = *(uint8_t**)GetProcAddress(MAIN_HANDLE, "?BattleStatus@AREA@YS@@2PEADEA");
 		uint16_t* _hardpadInput = *(uint16_t**)GetProcAddress(MAIN_HANDLE, "?Input@HARDPAD@YS@@2PEAGEA");
 		char* _saveData = *(char**)GetProcAddress(MAIN_HANDLE, "?SaveData@AREA@YS@@2PEADEA");
+		char* _memberAnchor = *(char**)GetProcAddress(MAIN_HANDLE, "?MemberStatsAnchor@MEMBER_TABLE@YS@@2PEADEA");
 		char* _mareConfig = FindModule("steam_api64.dll") ? *(char**)GetProcAddress(MAIN_HANDLE, "?MareConfig@STEAM@PC@@2PEADEA") : *(char**)GetProcAddress(MAIN_HANDLE, "?MareConfig@EGS@PC@@2PEADEA");
 
 		uint64_t _commandElem = *(uint64_t*)GetProcAddress(MAIN_HANDLE, "?CommandElem@COMMAND_ELEM@YS@@2_KA");
@@ -152,7 +153,7 @@ extern "C"
 				else if (_fetchButtons & 0x8000)
 					_currCommand = *(_shortcutStart + 0x02);
 
-				if (_currCommand != 0x00)
+				if (_currCommand != 0x00 && *(_memberAnchor + 0xC308 + 0x180) > 0x00)
 				{
 					auto _commandElem = _commandElemGet(_currCommand);
 					auto _commandAlloc = (char*)malloc(0x20);
