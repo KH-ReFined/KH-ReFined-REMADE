@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <cstdio>
 #include <Windows.h>
 #include <iostream>
@@ -27,7 +29,7 @@
 #include "party.h"
 #include "form_level.h"
 #include "next_form.h"
-#include <chrono>
+#include "region.h"
 
 #include "Continuous.h"
 #include "Critical.h"
@@ -109,6 +111,14 @@ uint16_t CURRENT_OBJECTS = 0xFFFF;
 
 char* MDLX_PATH = SignatureScan<char*>("\x6F\x62\x6A\x2F\x25\x73\x2E\x6D\x64\x6C\x78\x00\x00\x00\x00\x00", "xxxxxxxxxxxxxxxx");
 char* APDX_PATH = SignatureScan<char*>("\x6F\x62\x6A\x2F\x25\x73\x2E\x61\x2E\x25\x73\x00\x00\x00\x00\x00", "xxxxxxxxxxxxxxxx");
+
+char* OBJENTRY_READREQUESTSUB = SignatureScan<char*>("\x4D\x8D\x47\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x36\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxxxx????");
+char* OBJENTRY_GETCACHEBUFFSTATUS = SignatureScan<char*>("\x4C\x8D\x46\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x36\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxxxx????");
+
+char* OBJENTRY_GETMDLX = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x85\xD2\x48\x8D\x79\x08\x48\x8D\x1D\x48", "xxxxxxxxxxxxxxxxxxxxx");
+
+char* MDLX_WRITE_BUFFER = ResolveRelativeAddress<char*>(OBJENTRY_READREQUESTSUB, 0xE);
+char* APDX_WRITE_BUFFER = MDLX_WRITE_BUFFER + 0x28;
 
 uint8_t CONTROL_SCHEME = 0x00;
 
@@ -938,6 +948,63 @@ void ReFined::Continuous::HotswapObjects()
 		}
 	}
 }
+
+char* ReFined::Continuous::VerifyMDLX(char* objentryEntry, char* buff)
+{
+	char* _mdlxName = objentryEntry + 0x08;
+	char* _useBuff = MDLX_WRITE_BUFFER;
+
+	if (buff != nullptr)
+		_useBuff = buff;
+
+	sprintf(_useBuff, MDLX_PATH, _mdlxName);
+	
+	auto _fetchSize = YS::FILE::GetSize(_useBuff);
+
+	if (_fetchSize == 0x00)
+		sprintf(_useBuff, "obj/%s.mdlx", _mdlxName);
+
+	return _useBuff;
+}
+
+char* ReFined::Continuous::VerifyAPDX(char* objentryEntry, char* buff)
+{
+	char* _apdxName = objentryEntry + 0x08;
+	char* _useBuff = APDX_WRITE_BUFFER;
+
+	if ((*(objentryEntry + 0x48) & 0x01) != 0x00)
+		return nullptr;
+
+	if (buff != nullptr)
+		_useBuff = buff;
+
+	if (!YS::REGION::Get() || YS::REGION::Get() == 0x07)
+	{
+		sprintf(_useBuff, APDX_PATH, _apdxName, "fm");
+
+		if (YS::FILE::GetSize(_useBuff) == 0x00)
+			sprintf(_useBuff, "obj/%s.a.fm", _apdxName);
+	}
+
+	else
+	{
+		sprintf(_useBuff, APDX_PATH, _apdxName, reinterpret_cast<char*>(*YS::REGION::pint_region));
+
+		if (YS::FILE::GetSize(_useBuff) == 0x00)
+			sprintf(_useBuff, APDX_PATH, _apdxName, "us");
+
+		if (YS::FILE::GetSize(_useBuff) == 0x00)
+		{
+			sprintf(_useBuff, "obj/%s.a.%s", _apdxName, reinterpret_cast<char*>(*YS::REGION::pint_region));
+
+			if (YS::FILE::GetSize(_useBuff) == 0x00)
+				sprintf(_useBuff, "obj/%s.a.us", _apdxName);
+		}
+	}
+
+	return _useBuff;
+}
+
 
 void ReFined::Continuous::EnforceControls()
 {

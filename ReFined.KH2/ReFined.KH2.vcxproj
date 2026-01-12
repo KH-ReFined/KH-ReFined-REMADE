@@ -76,6 +76,7 @@
     <ClInclude Include="include\kingdom\panacea_alloc.h" />
     <ClInclude Include="include\kingdom\party.h" />
     <ClInclude Include="include\kingdom\pax.h" />
+    <ClInclude Include="include\kingdom\region.h" />
     <ClInclude Include="include\kingdom\sequence.h" />
     <ClInclude Include="include\kingdom\shake.h" />
     <ClInclude Include="include\kingdom\softreset.h" />
@@ -149,6 +150,7 @@
     <ClCompile Include="src\kingdom\panacea_alloc.cpp" />
     <ClCompile Include="src\kingdom\party.cpp" />
     <ClCompile Include="src\kingdom\pax.cpp" />
+    <ClCompile Include="src\kingdom\region.cpp" />
     <ClCompile Include="src\kingdom\sequence.cpp" />
     <ClCompile Include="src\kingdom\shake.cpp" />
     <ClCompile Include="src\kingdom\softreset.cpp" />

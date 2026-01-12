@@ -68,6 +68,70 @@ extern "C"
 			memcpy(_checkSaveFunc + 0x150, &_jumpByte, 0x01);
 		}
 
+		char* _readRequestSubMDLX = SignatureScan<char*>("\x4D\x8D\x47\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x36\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxxxx????");
+		char* _getCacheBuffStatusMDLX = SignatureScan<char*>("\x4C\x8D\x46\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x36\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxxxx????");
+
+		char* _fetchMDLX = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x85\xD2\x48\x8D\x79\x08\x48\x8D\x1D\x48", "xxxxxxxxxxxxxxxxxxxxx");
+		char* _fetchAPDX = SignatureScan<char*>("\x40\x57\x48\x83\xEC\x20\x0F\xB6\x41\x48", "xxxxxxxxxx");
+
+		char* _readRequestSubAPDX = _readRequestSubMDLX + 0xCA;
+		char* _getCacheBuffStatusAPDX = _getCacheBuffStatusMDLX + 0xDA;
+
+		vector<uint8_t> _instructionREPLACE =
+		{
+			0x48, 0x8D, 0x0E,
+			0x48, 0x31, 0xD2,
+			0xE8, 0x00, 0x00, 0x00, 0x00,
+			0x48, 0x31, 0xC0
+		};
+
+		fill(_getCacheBuffStatusMDLX, _getCacheBuffStatusMDLX + 0x56, 0x90);
+		fill(_getCacheBuffStatusAPDX, _getCacheBuffStatusAPDX + 0x62, 0x90);
+
+		uint32_t _calcCall = _fetchMDLX - (_getCacheBuffStatusMDLX + 0x0B);
+		memcpy(_instructionREPLACE.data() + 0x07, &_calcCall, 0x04);
+
+		memcpy(_getCacheBuffStatusMDLX, _instructionREPLACE.data(), _instructionREPLACE.size());
+
+		_calcCall = _fetchAPDX - (_getCacheBuffStatusAPDX + 0x0B);
+		memcpy(_instructionREPLACE.data() + 0x07, &_calcCall, 0x04);
+
+		memcpy(_getCacheBuffStatusAPDX, _instructionREPLACE.data(), _instructionREPLACE.size());
+
+		fill(_readRequestSubMDLX, _readRequestSubMDLX + 0x56, 0x90);
+
+		_instructionREPLACE[0] += 0x01;
+		_instructionREPLACE[2] += 0x01;
+
+		_calcCall = _fetchMDLX - (_readRequestSubMDLX + 0x0B);
+		memcpy(_instructionREPLACE.data() + 0x07, &_calcCall, 0x04);
+
+		memcpy(_readRequestSubMDLX, _instructionREPLACE.data(), _instructionREPLACE.size());
+
+		_calcCall = _fetchAPDX - (_readRequestSubAPDX + 0x0B);
+		memcpy(_instructionREPLACE.data() + 0x07, &_calcCall, 0x04);
+
+		memcpy(_readRequestSubAPDX, _instructionREPLACE.data(), _instructionREPLACE.size());
+
+		fill(_fetchMDLX, _fetchMDLX + 0x71, 0x90);
+		fill(_fetchAPDX, _fetchAPDX + 0x92, 0x90);
+
+		vector<uint8_t> _mdlxRedirect =
+		{
+			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+		};
+
+		uint64_t _fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyMDLX);
+
+		memcpy(_mdlxRedirect.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchMDLX, _mdlxRedirect.data(), _mdlxRedirect.size());
+
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyAPDX);
+
+		memcpy(_mdlxRedirect.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchAPDX, _mdlxRedirect.data(), _mdlxRedirect.size());
+
 
 	    char* _magicClearFunc = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
 		char* _fadeReset = reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED;
@@ -501,8 +565,8 @@ extern "C"
 				}
 			}
 
-			auto _fetchEnemyFirst = YS::FILE::GetSize("mdl/P_EX100.a.us");
-			auto _fetchEnemySecond = YS::FILE::GetSize("o3d/P_EX100.a.us");
+			auto _fetchEnemyFirst = YS::FILE::GetSize("mdl/ACTOR_SORA.mdlx");
+			auto _fetchEnemySecond = YS::FILE::GetSize("o3d/ACTOR_SORA.mdlx");
 
 			vector<uint16_t> _enemyConfig{ 0x01, 0x571F, 0x573A, 0x573B, 0x0000 };
 

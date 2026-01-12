@@ -258,6 +258,9 @@
     <ClInclude Include="include\kingdom\config_menu.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
+    <ClInclude Include="include\kingdom\region.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\discord\activity_manager.cpp">
@@ -465,6 +468,9 @@
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
     <ClCompile Include="src\kingdom\panacea_alloc.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\region.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>

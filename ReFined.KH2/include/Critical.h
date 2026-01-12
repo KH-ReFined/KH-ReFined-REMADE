@@ -49,5 +49,6 @@ namespace ReFined
 		static void RetryBattles();
 		static void HandleIntro();
 		static void AspectCorrection();
+
 	};
 }

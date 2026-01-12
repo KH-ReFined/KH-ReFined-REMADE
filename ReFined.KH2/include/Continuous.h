@@ -21,5 +21,8 @@ namespace ReFined
 			static void HotswapMusic();
 			static void HotswapObjects();
 			static void EnforceControls();
+
+			static char* VerifyMDLX(char* objentryEntry, char* buff);
+			static char* VerifyAPDX(char* objentryEntry, char* buff);
 	};
 }
