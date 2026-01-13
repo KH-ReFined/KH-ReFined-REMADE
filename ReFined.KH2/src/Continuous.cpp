@@ -1034,11 +1034,14 @@ char* ReFined::Continuous::VerifyMSET(char* objentryEntry, uint32_t objectID, ch
 
 		if ((objectID & 0x10000000) != 0x00 || (objectID == 0x03EE || (objectID & 0x20000000) != 0x00) && *(objentryEntry + 0x04) != 0x00 && YS::CACHE_BUFF::GetStatus(_useBuff) < 2)
 		{
+			auto _fetchNameMSET = string(objentryEntry + 0x28);
+			_fetchNameMSET.resize(_fetchNameMSET.size() - 0x05);
+
 			_fetchPath.append("_MEMO.mset");
-			sprintf(_useBuff, _fetchPath.c_str(), objentryEntry + 0x08);
+			sprintf(_useBuff, _fetchPath.c_str(), _fetchNameMSET.c_str());
 
 			if (YS::FILE::GetSize(_useBuff) == 0x00)
-				sprintf(_useBuff, "obj/%s_MEMO.mset", objentryEntry + 0x08);
+				sprintf(_useBuff, "obj/%s_MEMO.mset", _fetchNameMSET.c_str());
 		}
 
 		return _useBuff;
