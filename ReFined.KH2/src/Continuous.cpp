@@ -119,6 +119,7 @@ char* OBJENTRY_GETMDLX = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\
 
 char* MDLX_WRITE_BUFFER = ResolveRelativeAddress<char*>(OBJENTRY_READREQUESTSUB, 0xE);
 char* APDX_WRITE_BUFFER = MDLX_WRITE_BUFFER + 0x28;
+char* MSET_WRITE_BUFFER = APDX_WRITE_BUFFER + 0x28;
 
 uint8_t CONTROL_SCHEME = 0x00;
 
@@ -1005,6 +1006,85 @@ char* ReFined::Continuous::VerifyAPDX(char* objentryEntry, char* buff)
 	return _useBuff;
 }
 
+char* ReFined::Continuous::VerifyMSET(char* objentryEntry, uint32_t objectID, char* buff)
+{
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	string _fetchPath = "obj/%s";
+
+	if (_fetchObject == 0x0200)
+		_fetchPath = "mdl/%s";
+
+	else if (_fetchObject == 0x0400)
+		_fetchPath = "o3d/%s";
+
+	char* _msetName = objentryEntry + 0x28;
+	char* _useBuff = MSET_WRITE_BUFFER;
+
+	if (buff != nullptr)
+		_useBuff = buff;
+
+	if (*_msetName != 0x00)
+	{
+		sprintf(_useBuff, _fetchPath.c_str(), _msetName);
+
+		if (YS::FILE::GetSize(_useBuff) == 0x00)
+			sprintf(_useBuff, "obj/%s", _msetName);
+
+		if ((objectID & 0x10000000) != 0x00 || (objectID == 0x03EE || (objectID & 0x20000000) != 0x00) && *(objentryEntry + 0x04) != 0x00 && YS::CACHE_BUFF::GetStatus(_useBuff) < 2)
+		{
+			_fetchPath.append("_MEMO.mset");
+			sprintf(_useBuff, _fetchPath.c_str(), objentryEntry + 0x08);
+
+			if (YS::FILE::GetSize(_useBuff) == 0x00)
+				sprintf(_useBuff, "obj/%s_MEMO.mset", objentryEntry + 0x08);
+		}
+
+		return _useBuff;
+	}
+
+	else if ((objectID & 0x10000000) != 0x00)
+	{
+		_fetchPath.append("_MEMO.mset");
+		sprintf(_useBuff, _fetchPath.c_str(), objentryEntry + 0x08);
+
+		if (YS::FILE::GetSize(_useBuff) == 0x00)
+			sprintf(_useBuff, "obj/%s_MEMO.mset", objentryEntry + 0x08);
+
+		return _useBuff;
+	}
+
+	return nullptr;
+}
+
+void ReFined::Continuous::VerifyITEMPIC(char* buff, uint16_t id)
+{
+	auto _fetchPicturePtr = *YS::ITEMPIC::LoadedId;
+	auto _fetchPictureID = 0x00;
+
+	if (_fetchPicturePtr != nullptr)
+		_fetchPictureID = *_fetchPicturePtr;
+
+	else
+		_fetchPictureID = id;
+
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	string _fetchPath = "itempic/item-%03d.imd";
+
+	if (_fetchObject == 0x0200)
+		_fetchPath = "itempic_2nd/item-%03d.imd";
+
+	else if (_fetchObject == 0x0400)
+		_fetchPath = "itempic_3rd/item-%03d.imd";
+
+	sprintf(buff, _fetchPath.c_str(), _fetchPictureID);
+
+	if (YS::FILE::GetSize(buff) == 0x00)
+		sprintf(buff, "itempic/item-%03d.imd", _fetchPictureID);
+}
 
 void ReFined::Continuous::EnforceControls()
 {

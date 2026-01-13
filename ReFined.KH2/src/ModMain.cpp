@@ -68,11 +68,12 @@ extern "C"
 			memcpy(_checkSaveFunc + 0x150, &_jumpByte, 0x01);
 		}
 
-		char* _readRequestSubMDLX = SignatureScan<char*>("\x4D\x8D\x47\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x36\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxxxx????");
-		char* _getCacheBuffStatusMDLX = SignatureScan<char*>("\x4C\x8D\x46\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x36\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxxxx????");
+		char* _readRequestSubMDLX = SignatureScan<char*>("\x4D\x8D\x47\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x00\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxx?x????");
+		char* _getCacheBuffStatusMDLX = SignatureScan<char*>("\x4C\x8D\x46\x08\x48\x8D\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x85\xC0\x74\x00\xE8\x00\x00\x00\x00", "xxxxxxx????xxx????x????x????xxx?x????");
 
-		char* _fetchMDLX = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x85\xD2\x48\x8D\x79\x08\x48\x8D\x1D\x48", "xxxxxxxxxxxxxxxxxxxxx");
+		char* _fetchMDLX = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x85\xD2\x48\x8D\x79\x08", "xxxxxxxxxxxxxxxxx");
 		char* _fetchAPDX = SignatureScan<char*>("\x40\x57\x48\x83\xEC\x20\x0F\xB6\x41\x48", "xxxxxxxxxx");
+		char* _fetchMSET = SignatureScan<char*>("\x48\x89\x5C\x24\x10\x48\x89\x6C\x24\x18\x48\x89\x74\x24\x20\x57\x48\x83\xEC\x20\x4D\x85\xC0\x48\x8D\x3D", "xxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 		char* _readRequestSubAPDX = _readRequestSubMDLX + 0xCA;
 		char* _getCacheBuffStatusAPDX = _getCacheBuffStatusMDLX + 0xDA;
@@ -115,6 +116,7 @@ extern "C"
 
 		fill(_fetchMDLX, _fetchMDLX + 0x71, 0x90);
 		fill(_fetchAPDX, _fetchAPDX + 0x92, 0x90);
+		fill(_fetchMSET, _fetchMSET + 0xE3, 0x90);
 
 		vector<uint8_t> _mdlxRedirect =
 		{
@@ -132,6 +134,58 @@ extern "C"
 		memcpy(_mdlxRedirect.data() + 0x06, &_fetchVerify, 0x08);
 		memcpy(_fetchAPDX, _mdlxRedirect.data(), _mdlxRedirect.size());
 
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyMSET);
+
+		memcpy(_mdlxRedirect.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchMSET, _mdlxRedirect.data(), _mdlxRedirect.size());
+
+		char* _itempicFirst = SignatureScan<char*>("\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x50\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x48\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x74\x13", "xxxxxxxxxxxxx????xxxxxxxxxx????xxxxxx") + 0x6F;
+		char* _itempicSecond = SignatureScan<char*>("\x48\x83\xEC\x68\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x50\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\x38\x05\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\x66\x83\x3D\x00\x00\x00\x00\x00", "xxxxxxx????xxxxxxxxx????xxxx????xx????xx????xxx????x") + 0x7D;
+
+		char* _treasurePtr = ResolveRelativeAddress<char*>(_itempicFirst, 0x7A);
+
+		vector<uint8_t> _doNotQuestionThisPlease =
+		{
+			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+		};
+
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyITEMPIC);
+		memcpy(_doNotQuestionThisPlease.data() + 0x06, &_fetchVerify, 0x08);
+
+		memcpy(_fetchMDLX + 0x10, _doNotQuestionThisPlease.data(), _doNotQuestionThisPlease.size());
+
+		vector<uint8_t> _firstPatch =
+		{
+			0xC7, 0x05, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+			0x48, 0x8B, 0x53, 0x18,
+			0x48, 0x8D, 0x4C, 0x24, 0x20,
+			0x48, 0x8B, 0xFA,
+			0xE8, 0x00, 0x00, 0x00, 0x00
+		};
+
+		uint32_t _calcTreasure = _treasurePtr - (_itempicFirst + 0x0A);
+		uint32_t _calcCallItempic = (_fetchMDLX + 0x10) - (_itempicFirst + 0x1B);
+
+		fill(_itempicFirst, _itempicFirst + 0x21, 0x90);
+
+		memcpy(_firstPatch.data() + 0x17, &_calcCallItempic, 0x04);
+		memcpy(_firstPatch.data() + 0x02, &_calcTreasure, 0x04);
+
+		memcpy(_itempicFirst, _firstPatch.data(), _firstPatch.size());
+
+		vector<uint8_t> _secondPatch =
+		{
+			0x48, 0x8D, 0x4C, 0x24, 0x30,
+			0xE8, 0x00, 0x00, 0x00, 0x00
+		};
+
+		_calcCallItempic = (_fetchMDLX + 0x10) - (_itempicSecond + 0x0A);
+
+		fill(_itempicSecond, _itempicSecond + 0x14, 0x90);
+
+		memcpy(_secondPatch.data() + 0x06, &_calcCallItempic, 0x04);
+		memcpy(_itempicSecond, _secondPatch.data(), _secondPatch.size());
 
 	    char* _magicClearFunc = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
 		char* _fadeReset = reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED;

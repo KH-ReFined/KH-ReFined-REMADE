@@ -22,6 +22,9 @@ extern "C"
 
 			using IsFlushing_t = bool(*)();
 			static IsFlushing_t IsFlushing;
+
+			using GetStatus_t = int(*)(const char* name);
+			static GetStatus_t GetStatus;
 		};
 	}
 }

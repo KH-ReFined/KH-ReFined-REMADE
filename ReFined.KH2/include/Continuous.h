@@ -24,5 +24,9 @@ namespace ReFined
 
 			static char* VerifyMDLX(char* objentryEntry, char* buff);
 			static char* VerifyAPDX(char* objentryEntry, char* buff);
+
+			static char* VerifyMSET(char* objentryEntry, uint32_t objectID, char* buff);
+
+			static void VerifyITEMPIC(char* buff, uint16_t id);
 	};
 }

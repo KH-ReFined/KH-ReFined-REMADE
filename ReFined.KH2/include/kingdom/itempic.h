@@ -16,6 +16,7 @@ extern "C"
 			static FreeImageData_t FreeImageData;
 
 			static char* ImageBuff;
+			static uint16_t** LoadedId;
 		};
 	}
 }
