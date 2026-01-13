@@ -100,6 +100,7 @@ extern "C"
 		memcpy(_getCacheBuffStatusAPDX, _instructionREPLACE.data(), _instructionREPLACE.size());
 
 		fill(_readRequestSubMDLX, _readRequestSubMDLX + 0x56, 0x90);
+		fill(_readRequestSubAPDX, _readRequestSubAPDX + 0x62, 0x90);
 
 		_instructionREPLACE[0] += 0x01;
 		_instructionREPLACE[2] += 0x01;
@@ -118,26 +119,26 @@ extern "C"
 		fill(_fetchAPDX, _fetchAPDX + 0x92, 0x90);
 		fill(_fetchMSET, _fetchMSET + 0xE3, 0x90);
 
-		vector<uint8_t> _mdlxRedirect =
+		vector<uint8_t> _funcRedirectInst =
 		{
 			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 		};
 
-		uint64_t _fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyMDLX);
+		uint64_t _fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructMDLX);
 
-		memcpy(_mdlxRedirect.data() + 0x06, &_fetchVerify, 0x08);
-		memcpy(_fetchMDLX, _mdlxRedirect.data(), _mdlxRedirect.size());
+		memcpy(_funcRedirectInst.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchMDLX, _funcRedirectInst.data(), _funcRedirectInst.size());
 
-		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyAPDX);
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructAPDX);
 
-		memcpy(_mdlxRedirect.data() + 0x06, &_fetchVerify, 0x08);
-		memcpy(_fetchAPDX, _mdlxRedirect.data(), _mdlxRedirect.size());
+		memcpy(_funcRedirectInst.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchAPDX, _funcRedirectInst.data(), _funcRedirectInst.size());
 
-		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyMSET);
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructMSET);
 
-		memcpy(_mdlxRedirect.data() + 0x06, &_fetchVerify, 0x08);
-		memcpy(_fetchMSET, _mdlxRedirect.data(), _mdlxRedirect.size());
+		memcpy(_funcRedirectInst.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchMSET, _funcRedirectInst.data(), _funcRedirectInst.size());
 
 		char* _itempicFirst = SignatureScan<char*>("\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x50\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x48\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x74\x13", "xxxxxxxxxxxxx????xxxxxxxxxx????xxxxxx") + 0x6F;
 		char* _itempicSecond = SignatureScan<char*>("\x48\x83\xEC\x68\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x50\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\x38\x05\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\x66\x83\x3D\x00\x00\x00\x00\x00", "xxxxxxx????xxxxxxxxx????xxxx????xx????xx????xxx????x") + 0x7D;
@@ -150,7 +151,7 @@ extern "C"
 			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 		};
 
-		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::VerifyITEMPIC);
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructITEMPIC);
 		memcpy(_doNotQuestionThisPlease.data() + 0x06, &_fetchVerify, 0x08);
 
 		memcpy(_fetchMDLX + 0x10, _doNotQuestionThisPlease.data(), _doNotQuestionThisPlease.size());
@@ -186,6 +187,15 @@ extern "C"
 
 		memcpy(_secondPatch.data() + 0x06, &_calcCallItempic, 0x04);
 		memcpy(_itempicSecond, _secondPatch.data(), _secondPatch.size());
+
+		char* _fetchBGM = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x0D\x8B\xD9\x75\x00\x83\xF9\x75\xBB\x05\x02\x00\x00\xB8\x09\x02\x00\x00\x0F\x45", "xxxxxxxx????xxxx?xxxxxxxxxxxxxxx");
+		
+		fill(_fetchBGM, _fetchBGM + 0x78, 0x90);
+
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructBGM);
+
+		memcpy(_funcRedirectInst.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchBGM, _funcRedirectInst.data(), _funcRedirectInst.size());
 
 	    char* _magicClearFunc = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
 		char* _fadeReset = reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED;
@@ -570,9 +580,11 @@ extern "C"
 		{
 			auto _fetchMessage = YS::MESSAGE::GetData(0x8ADC);
 
-			if (_fetchMessage != nullptr)
-				for (auto _execFunc : moduleinit)
-					_execFunc(MOD_PATH.c_str());
+			if (_fetchMessage == nullptr)
+				return;
+
+			for (auto _execFunc : moduleinit)
+				_execFunc(MOD_PATH.c_str());
 
 			char* _fetchFirstShopface = SignatureScan<char*>("\x40\x56\x48\x81\xEC\xC0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\xA0\x00\x00\x00\x48\x8B\x0D\x00\x00\x00\x00\x33\xF6\xE8\x00\x00\x00\x00", "xxxxxxxxxxxx????xxxxxxxxxxxxxx????xxx????");
 			char* _fetchSecondShopface = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xDA\x8B\xF9\x48\x8B\xCB\x48\x8D\x15\x00\x00\x00\x00\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxx????x????");
@@ -619,48 +631,54 @@ extern "C"
 				}
 			}
 
-			auto _fetchEnemyFirst = YS::FILE::GetSize("mdl/ACTOR_SORA.mdlx");
-			auto _fetchEnemySecond = YS::FILE::GetSize("o3d/ACTOR_SORA.mdlx");
+			auto _firstResourceName = YS::MESSAGE::GetData(0x573C);
+			auto _secondResourceName = YS::MESSAGE::GetData(0x573E);
 
-			vector<uint16_t> _enemyConfig{ 0x01, 0x571F, 0x573A, 0x573B, 0x0000 };
+			ReFined::Continuous::FIRST_RESOURCE_FOUND = YS::MESSAGE::DecodeKHSCII(_firstResourceName) != "RESERVED";
+			ReFined::Continuous::SECOND_RESOURCE_FOUND = YS::MESSAGE::DecodeKHSCII(_secondResourceName) != "RESERVED";
 
-			if (_fetchEnemyFirst != 0x00)
+			vector<uint16_t> _resourceConfig{ 0x01, 0x571F, 0x573A, 0x573B, 0x0000 };
+
+			if (ReFined::Continuous::FIRST_RESOURCE_FOUND != 0x00)
 			{
-				auto _findName = find(_enemyConfig.begin(), _enemyConfig.end(), 0x573B);
-				_enemyConfig.insert(_findName, 0x573C);
+				auto _findName = find(_resourceConfig.begin(), _resourceConfig.end(), 0x573B);
+				_resourceConfig.insert(_findName, 0x573C);
 
-				auto _findBitwise = find(_enemyConfig.begin(), _enemyConfig.end(), 0x0000);
-				_enemyConfig.insert(_findBitwise, 0x573D);
+				auto _findBitwise = find(_resourceConfig.begin(), _resourceConfig.end(), 0x0000);
+				_resourceConfig.insert(_findBitwise, 0x573D);
 
-				_enemyConfig[0] += 1;
+				_resourceConfig[0] += 1;
 			}
 
-			if (_fetchEnemySecond != 0x00)
+			if (ReFined::Continuous::SECOND_RESOURCE_FOUND != 0x00)
 			{
-				auto _findName = find(_enemyConfig.begin(), _enemyConfig.end(), 0x573B);
-				_enemyConfig.insert(_findName, 0x573E);
+				auto _findName = find(_resourceConfig.begin(), _resourceConfig.end(), 0x573B);
+				_resourceConfig.insert(_findName, 0x573E);
 
-				auto _findBitwise = find(_enemyConfig.begin(), _enemyConfig.end(), 0x0000);
-				_enemyConfig.insert(_findBitwise, 0x573F);
+				auto _findBitwise = find(_resourceConfig.begin(), _resourceConfig.end(), 0x0000);
+				_resourceConfig.insert(_findBitwise, 0x573F);
 
-				_enemyConfig[0] += 1;
+				_resourceConfig[0] += 1;
 			}
 
-			if (_fetchEnemyFirst != 0x00)
-				_enemyConfig.push_back(0x0200);
+			if (ReFined::Continuous::FIRST_RESOURCE_FOUND != 0x00)
+				_resourceConfig.push_back(0x0200);
 
-			if (_fetchEnemySecond != 0x00)
-				_enemyConfig.push_back(0x0400);
+			if (ReFined::Continuous::SECOND_RESOURCE_FOUND != 0x00)
+				_resourceConfig.push_back(0x0400);
 
-			if (_enemyConfig[0] > 1)
-				Tz::HookConfig::Add(Tz::HookConfig::Entries.size() - 0x03, _enemyConfig);
+			if (_resourceConfig[0] > 1)
+				Tz::HookConfig::Add(Tz::HookConfig::Entries.size() - 0x03, _resourceConfig);
 
-			auto _fetchMusicFirst = YS::FILE::GetSize("bgm/ps2md050.win32.scd");
-			auto _fetchMusicSecond = YS::FILE::GetSize("bgm/mdbgm050.win32.scd");
+			auto _firstMusicName = YS::MESSAGE::GetData(0x571B);
+			auto _secondMusicName = YS::MESSAGE::GetData(0x571D);
+
+			ReFined::Continuous::FIRST_MUSIC_FOUND = YS::MESSAGE::DecodeKHSCII(_firstMusicName) != "RESERVED";
+			ReFined::Continuous::SECOND_MUSIC_FOUND = YS::MESSAGE::DecodeKHSCII(_secondMusicName) != "RESERVED";
 
 			vector<uint16_t> _musicConfig { 0x01, 0x5718, 0x5719, 0x571A, 0x0000 };
 
-			if (_fetchMusicFirst != 0x00)
+			if (ReFined::Continuous::FIRST_MUSIC_FOUND)
 			{
 				auto _findName = find(_musicConfig.begin(), _musicConfig.end(), 0x571A);
 				_musicConfig.insert(_findName, 0x571B);
@@ -671,7 +689,7 @@ extern "C"
 				_musicConfig[0] += 1;
 			}
 
-			if (_fetchMusicSecond != 0x00)
+			if (ReFined::Continuous::SECOND_MUSIC_FOUND)
 			{
 				auto _findName = find(_musicConfig.begin(), _musicConfig.end(), 0x571A);
 				_musicConfig.insert(_findName, 0x571D);
@@ -682,10 +700,10 @@ extern "C"
 				_musicConfig[0] += 1;
 			}
 
-			if (_fetchMusicFirst != 0x00)
+			if (ReFined::Continuous::FIRST_MUSIC_FOUND)
 				_musicConfig.push_back(0x0080);
 
-			if (_fetchMusicSecond != 0x00)
+			if (ReFined::Continuous::SECOND_MUSIC_FOUND)
 				_musicConfig.push_back(0x0100);
 
 			if (_musicConfig[0] > 1)

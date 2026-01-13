@@ -8,6 +8,12 @@ namespace ReFined
 			static uint8_t SAVE_SLOT_OFFSET;
 			static uint8_t ROOM_AMOUNT;
 
+			static bool FIRST_MUSIC_FOUND;
+			static bool SECOND_MUSIC_FOUND;
+
+			static bool FIRST_RESOURCE_FOUND;
+			static bool SECOND_RESOURCE_FOUND;
+
 			static void FixSummonBGM();
 			static void AutosaveLogic();
 			static void EnforcePrompts();
@@ -22,11 +28,13 @@ namespace ReFined
 			static void HotswapObjects();
 			static void EnforceControls();
 
-			static char* VerifyMDLX(char* objentryEntry, char* buff);
-			static char* VerifyAPDX(char* objentryEntry, char* buff);
+			static char* ConstructBGM(int number);
 
-			static char* VerifyMSET(char* objentryEntry, uint32_t objectID, char* buff);
+			static char* ConstructMDLX(char* objentryEntry, char* buff);
+			static char* ConstructAPDX(char* objentryEntry, char* buff);
 
-			static void VerifyITEMPIC(char* buff, uint16_t id);
+			static char* ConstructMSET(char* objentryEntry, uint32_t objectID, char* buff);
+
+			static void ConstructITEMPIC(char* buff, uint16_t id);
 	};
 }

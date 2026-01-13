@@ -16,6 +16,7 @@
 #include "party.h"
 #include "menu.h"
 #include "message.h"
+#include "objentry.h"
 #include "softreset.h"
 #include "sequence.h"
 #include "next_form.h"

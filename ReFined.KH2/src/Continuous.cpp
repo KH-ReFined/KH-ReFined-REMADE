@@ -121,6 +121,8 @@ char* MDLX_WRITE_BUFFER = ResolveRelativeAddress<char*>(OBJENTRY_READREQUESTSUB,
 char* APDX_WRITE_BUFFER = MDLX_WRITE_BUFFER + 0x28;
 char* MSET_WRITE_BUFFER = APDX_WRITE_BUFFER + 0x28;
 
+char* BGM_WRITE_BUFFER;
+
 uint8_t CONTROL_SCHEME = 0x00;
 
 uint32_t PAST_LOCKON;
@@ -134,6 +136,12 @@ char* LOCKON_FLOATS = SignatureScan<char*>("\x00\x00\x80\xBF\xF3\x04\xB5\xBF\x00
 
 char* LOCKON_CHANGE = ResolveFunctionFromCall<char*>("\x48\x89\x5C\x24\x10\x48\x89\x74\x24\x18\x55\x57\x41\x56\x48\x8B", "xxxxxxxxxxxxxxxx", 0x16A);
 uint32_t* LOCKON_TARGET = ResolveRelativeAddress<uint32_t*>(LOCKON_CHANGE, 0x0B);
+
+bool ReFined::Continuous::FIRST_MUSIC_FOUND = false;
+bool ReFined::Continuous::SECOND_MUSIC_FOUND = false;
+
+bool ReFined::Continuous::FIRST_RESOURCE_FOUND = false;
+bool ReFined::Continuous::SECOND_RESOURCE_FOUND = false;
 
 // Fixes an odd issue where summon animations may cause both field and battle musics to play.
 void ReFined::Continuous::FixSummonBGM()
@@ -735,29 +743,17 @@ void ReFined::Continuous::HotswapMusic()
 	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
 	auto _fetchMusic = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
 
-	if (FETCH_SIZE_FIRST == 0xFFFF)
-	{
-		FETCH_SIZE_FIRST = YS::FILE::GetSize("bgm/ps2md050.win32.scd");
-		FETCH_SIZE_SECOND = YS::FILE::GetSize("bgm/mdbgm050.win32.scd");
-	}
-
 	if (*YS::TITLE::IsTitle)
 			CURRENT_MUSIC = 0xFFFF;
 
 	if (*YS::AREA::IsInMap)
 	{
 		if (CURRENT_MUSIC == 0xFFFF)
-			CURRENT_MUSIC = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+			CURRENT_MUSIC = _fetchMusic;
 
 		else if (CURRENT_MUSIC != _fetchMusic)
 		{
-			string _constructPath = "bgm/music%03d.win32.scd";
-			string _editPath;
-
-			if (_fetchMusic == 0x0080 && FETCH_SIZE_FIRST != 0x00)
-				_constructPath = "bgm/ps2md%03d.win32.scd";
-
-			else if (_fetchMusic == 0x0080)
+			if (_fetchMusic == 0x0080 && !FIRST_MUSIC_FOUND)
 			{
 				_fetchMusic -= 0x0080;
 				_fetchConfig -= 0x0080;
@@ -765,10 +761,7 @@ void ReFined::Continuous::HotswapMusic()
 				*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0080;
 			}
 
-			if (_fetchMusic == 0x0100 && FETCH_SIZE_SECOND != 0x00)
-				_constructPath = "bgm/mdbgm%03d.win32.scd";
-
-			else if (_fetchMusic == 0x0100)
+			if (_fetchMusic == 0x0100 && !SECOND_MUSIC_FOUND)
 			{
 				_fetchMusic -= 0x0100;
 				_fetchConfig -= 0x0100;
@@ -776,10 +769,13 @@ void ReFined::Continuous::HotswapMusic()
 				*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0100;
 			}
 
-			memcpy(MUSIC_PATH, _constructPath.c_str(), 0x17);
+			string _fetchPath = "bgm/music%03d.win32.scd";
 
-			_editPath = _constructPath;
-			_editPath.replace(_editPath.begin() + 0x09, _editPath.begin() + 0x0D, "000");
+			if (_fetchMusic == 0x0080)
+				_fetchPath = "bgm_2nd/music%03d.win32.scd";
+
+			else if (_fetchMusic == 0x0100)
+				_fetchPath = "bgm_3rd/music%03d.win32.scd";
 
 			auto _fetchMode = *YS::AREA::BattleStatus == 0x00 ? 0x00 : 0x01;
 
@@ -789,17 +785,21 @@ void ReFined::Continuous::HotswapMusic()
 			auto _fetchCurrentField = *reinterpret_cast<uint16_t*>(YS::SOUND::CurrentMusic);
 			auto _fetchCurrentBattle = *reinterpret_cast<uint16_t*>(YS::SOUND::CurrentMusic + 0x10);
 
-			stringstream _streamField;
-			_streamField << setw(0x03) << setfill('0') << _fetchCurrentField;
+			char _fieldMusicPath[0x28];
+			char _battleMusicPath[0x28];
 
-			stringstream _streamBattle;
-			_streamBattle << setw(0x03) << setfill('0') << _fetchCurrentBattle;
+			sprintf(_fieldMusicPath, _fetchPath.c_str(), _fetchCurrentField);
 
-			auto _musicPathField = _editPath.replace(_editPath.begin() + 0x09, _editPath.begin() + 0x0C, _streamField.str());
-			auto _musicPathBattle = _editPath.replace(_editPath.begin() + 0x09, _editPath.begin() + 0x0C, _streamBattle.str());
+			if (YS::FILE::GetSize(_fieldMusicPath) == 0x00)
+				sprintf(_fieldMusicPath, "bgm/music%03d.win32.scd", _fetchCurrentField);
 
-			auto _sizeField = YS::FILE::GetSize(_musicPathField.c_str());
-			auto _sizeBattle = YS::FILE::GetSize(_musicPathBattle.c_str());
+			sprintf(_battleMusicPath, _fetchPath.c_str(), _fetchCurrentBattle);
+
+			if (YS::FILE::GetSize(_battleMusicPath) == 0x00)
+				sprintf(_battleMusicPath, "bgm/music%03d.win32.scd", _fetchCurrentBattle);
+
+			auto _sizeField = YS::FILE::GetSize(_fieldMusicPath);
+			auto _sizeBattle = YS::FILE::GetSize(_battleMusicPath);
 
 			if (TRANSFER_FIELD)
 				goto FIELD_AFTERMATH;
@@ -811,7 +811,7 @@ void ReFined::Continuous::HotswapMusic()
 
 			if (FIELD_ALLOC != nullptr)
 			{
-				auto _loadField = YS::FILE::Read(_musicPathField.c_str(), FIELD_ALLOC);
+				auto _loadField = YS::FILE::Read(_fieldMusicPath, FIELD_ALLOC);
 
 				if (_fetchMode == 0x00 && _fetchVolumeStart != 0x00)
 					YS::SOUND::KillBGM(0x00);
@@ -835,7 +835,7 @@ void ReFined::Continuous::HotswapMusic()
 
 			if (BATTLE_ALLOC != nullptr)
 			{
-				auto _loadBattle = YS::FILE::Read(_musicPathBattle.c_str(), BATTLE_ALLOC);
+				auto _loadBattle = YS::FILE::Read(_battleMusicPath, BATTLE_ALLOC);
 
 				if (_fetchMode == 0x01 && _fetchVolumeStart != 0x00)
 					YS::SOUND::KillBGM(0x01);
@@ -862,36 +862,15 @@ void ReFined::Continuous::HotswapMusic()
 	else if (!*YS::AREA::IsInMap && !*YS::TITLE::IsTitle && CURRENT_MUSIC != _fetchMusic)
 	{
 		if (CURRENT_MUSIC == 0xFFFF)
-			CURRENT_MUSIC = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+			CURRENT_MUSIC = _fetchMusic;
 
-		string _constructPath = "bgm/music%03d.win32.scd";
-		string _editPath;
-
-		if (_fetchMusic == 0x0080 && FETCH_SIZE_FIRST != 0x00)
-			_constructPath = "bgm/ps2md%03d.win32.scd";
-
-		else if (_fetchMusic == 0x0080)
-		{
-			_fetchMusic -= 0x0080;
-			_fetchConfig -= 0x0080;
-
+		else if (_fetchMusic == 0x0080 && !FIRST_MUSIC_FOUND)
 			*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0080;
-		}
 
-		if (_fetchMusic == 0x0100 && FETCH_SIZE_SECOND != 0x00)
-			_constructPath = "bgm/mdbgm%03d.win32.scd";
-
-		else if (_fetchMusic == 0x0100)
-		{
-			_fetchMusic -= 0x0100;
-			_fetchConfig -= 0x0100;
-
+		if (_fetchMusic == 0x0100 && !SECOND_MUSIC_FOUND)
 			*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0100;
-		}
 
-		memcpy(MUSIC_PATH, _constructPath.c_str(), 0x17);
-
-		CURRENT_MUSIC = _fetchConfig;
+		CURRENT_MUSIC = _fetchMusic;
 	}
 }
 
@@ -905,18 +884,13 @@ void ReFined::Continuous::HotswapObjects()
 		if (!*YS::TITLE::IsTitle)
 		{
 			if (CURRENT_OBJECTS == 0xFFFF)
-				CURRENT_OBJECTS = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+				CURRENT_OBJECTS = _fetchObject;
 
-			string _fetchPath = "obj/";
+			if (_fetchObject == 0x0200 && !FIRST_RESOURCE_FOUND)
+				*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0080;
 
-			if (_fetchObject == 0x0200)
-				_fetchPath = "mdl/";
-
-			else if (_fetchObject == 0x0400)
-				_fetchPath = "o3d/";
-
-			memcpy(MDLX_PATH, _fetchPath.c_str(), 0x04);
-			memcpy(APDX_PATH, _fetchPath.c_str(), 0x04);
+			else if (_fetchObject == 0x0400 && !SECOND_RESOURCE_FOUND)
+				*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0100;
 		}
 
 		else
@@ -926,39 +900,81 @@ void ReFined::Continuous::HotswapObjects()
 	if (*YS::AREA::IsInMap)
 	{
 		if (CURRENT_OBJECTS == 0xFFFF)
-			CURRENT_OBJECTS = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+			CURRENT_OBJECTS = _fetchObject;
 
-		else if (CURRENT_OBJECTS != _fetchObject)
+		if (_fetchObject == 0x0200 && !FIRST_RESOURCE_FOUND)
+			*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0080;
+
+		else if (_fetchObject == 0x0400 && !SECOND_RESOURCE_FOUND)
+			*reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6) -= 0x0100;
+
+		else if (CURRENT_OBJECTS != _fetchObject && !*YS::MENU::IsMenu)
 		{
-			string _fetchPath = "obj/";
-
-			if (_fetchObject == 0x0200)
-				_fetchPath = "mdl/";
-
-			else if (_fetchObject == 0x0400)
-				_fetchPath = "o3d/";
-
-			memcpy(MDLX_PATH, _fetchPath.c_str(), 0x04);
-			memcpy(APDX_PATH, _fetchPath.c_str(), 0x04);
-
-			if (!*YS::MENU::IsMenu)
-			{
-				YS::AREA::MapJump(YS::AREA::Current, 0x00, 0x00, false);
-				CURRENT_OBJECTS = _fetchObject;
-			}
+			YS::AREA::MapJump(YS::AREA::Current, 0x01, 0x00, false);
+			CURRENT_OBJECTS = _fetchObject;
 		}
 	}
 }
 
-char* ReFined::Continuous::VerifyMDLX(char* objentryEntry, char* buff)
+char* ReFined::Continuous::ConstructBGM(int number)
 {
+	auto _calcNumber = number;
+
+	if (BGM_WRITE_BUFFER == nullptr)
+	BGM_WRITE_BUFFER = (char*)malloc(0x28);
+
+	if (YS::AREA::Current->World == 0x0B)
+	{
+		_calcNumber = 517;
+
+		if (number != 117)
+			_calcNumber = number;
+
+		if (number == 121)
+			_calcNumber = 521;
+	}
+
+	if (YS::REGION::Get() && YS::REGION::Get() != 0x07 && (_calcNumber <= 3 || _calcNumber == 113))
+		_calcNumber += 400;
+
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchMusic = (_fetchConfig & 0x0080) == 0x0080 ? 0x0080 : ((_fetchConfig & 0x0100) == 0x0100 ? 0x0100 : 0x0000);
+
+	string _fetchPath = "bgm/music%03d.win32.scd";
+
+	if (_fetchMusic == 0x0080)
+		_fetchPath = "bgm_2nd/music%03d.win32.scd";
+
+	else if (_fetchMusic == 0x0100)
+		_fetchPath = "bgm_3rd/music%03d.win32.scd";
+
+	sprintf(BGM_WRITE_BUFFER, _fetchPath.c_str(), _calcNumber);
+
+	if (YS::FILE::GetSize(BGM_WRITE_BUFFER) == 0x00)
+		sprintf(BGM_WRITE_BUFFER, "bgm/music%03d.win32.scd", _calcNumber);
+
+	return BGM_WRITE_BUFFER;
+}
+char* ReFined::Continuous::ConstructMDLX(char* objentryEntry, char* buff)
+{
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	string _fetchPath = "obj/%s.mdlx";
+
+	if (_fetchObject == 0x0200)
+		_fetchPath = "obj_2nd/%s.mdlx";
+
+	else if (_fetchObject == 0x0400)
+		_fetchPath = "obj_3rd/%s.mdlx";
+
 	char* _mdlxName = objentryEntry + 0x08;
 	char* _useBuff = MDLX_WRITE_BUFFER;
 
 	if (buff != nullptr)
 		_useBuff = buff;
 
-	sprintf(_useBuff, MDLX_PATH, _mdlxName);
+	sprintf(_useBuff, _fetchPath.c_str(), _mdlxName);
 	
 	auto _fetchSize = YS::FILE::GetSize(_useBuff);
 
@@ -968,10 +984,21 @@ char* ReFined::Continuous::VerifyMDLX(char* objentryEntry, char* buff)
 	return _useBuff;
 }
 
-char* ReFined::Continuous::VerifyAPDX(char* objentryEntry, char* buff)
+char* ReFined::Continuous::ConstructAPDX(char* objentryEntry, char* buff)
 {
 	char* _apdxName = objentryEntry + 0x08;
 	char* _useBuff = APDX_WRITE_BUFFER;
+
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	string _fetchPath = "obj/%s.a.%s";
+
+	if (_fetchObject == 0x0200)
+		_fetchPath = "obj_2nd/%s.a.%s";
+
+	else if (_fetchObject == 0x0400)
+		_fetchPath = "obj_3rd/%s.a.%s";
 
 	if ((*(objentryEntry + 0x48) & 0x01) != 0x00)
 		return nullptr;
@@ -981,7 +1008,7 @@ char* ReFined::Continuous::VerifyAPDX(char* objentryEntry, char* buff)
 
 	if (!YS::REGION::Get() || YS::REGION::Get() == 0x07)
 	{
-		sprintf(_useBuff, APDX_PATH, _apdxName, "fm");
+		sprintf(_useBuff, _fetchPath.c_str(), _apdxName, "fm");
 
 		if (YS::FILE::GetSize(_useBuff) == 0x00)
 			sprintf(_useBuff, "obj/%s.a.fm", _apdxName);
@@ -989,10 +1016,10 @@ char* ReFined::Continuous::VerifyAPDX(char* objentryEntry, char* buff)
 
 	else
 	{
-		sprintf(_useBuff, APDX_PATH, _apdxName, reinterpret_cast<char*>(*YS::REGION::pint_region));
+		sprintf(_useBuff, _fetchPath.c_str(), _apdxName, reinterpret_cast<char*>(*YS::REGION::pint_region));
 
 		if (YS::FILE::GetSize(_useBuff) == 0x00)
-			sprintf(_useBuff, APDX_PATH, _apdxName, "us");
+			sprintf(_useBuff, _fetchPath.c_str(), _apdxName, "us");
 
 		if (YS::FILE::GetSize(_useBuff) == 0x00)
 		{
@@ -1006,7 +1033,7 @@ char* ReFined::Continuous::VerifyAPDX(char* objentryEntry, char* buff)
 	return _useBuff;
 }
 
-char* ReFined::Continuous::VerifyMSET(char* objentryEntry, uint32_t objectID, char* buff)
+char* ReFined::Continuous::ConstructMSET(char* objentryEntry, uint32_t objectID, char* buff)
 {
 	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
 	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
@@ -1014,10 +1041,10 @@ char* ReFined::Continuous::VerifyMSET(char* objentryEntry, uint32_t objectID, ch
 	string _fetchPath = "obj/%s";
 
 	if (_fetchObject == 0x0200)
-		_fetchPath = "mdl/%s";
+		_fetchPath = "obj_2nd/%s";
 
 	else if (_fetchObject == 0x0400)
-		_fetchPath = "o3d/%s";
+		_fetchPath = "obj_3rd/%s";
 
 	char* _msetName = objentryEntry + 0x28;
 	char* _useBuff = MSET_WRITE_BUFFER;
@@ -1034,7 +1061,7 @@ char* ReFined::Continuous::VerifyMSET(char* objentryEntry, uint32_t objectID, ch
 
 		if ((objectID & 0x10000000) != 0x00 || (objectID == 0x03EE || (objectID & 0x20000000) != 0x00) && *(objentryEntry + 0x04) != 0x00 && YS::CACHE_BUFF::GetStatus(_useBuff) < 2)
 		{
-			auto _fetchNameMSET = string(objentryEntry + 0x28);
+			auto _fetchNameMSET = string(_msetName);
 			_fetchNameMSET.resize(_fetchNameMSET.size() - 0x05);
 
 			_fetchPath.append("_MEMO.mset");
@@ -1061,7 +1088,7 @@ char* ReFined::Continuous::VerifyMSET(char* objentryEntry, uint32_t objectID, ch
 	return nullptr;
 }
 
-void ReFined::Continuous::VerifyITEMPIC(char* buff, uint16_t id)
+void ReFined::Continuous::ConstructITEMPIC(char* buff, uint16_t id)
 {
 	auto _fetchPicturePtr = *YS::ITEMPIC::LoadedId;
 	auto _fetchPictureID = 0x00;
