@@ -117,11 +117,14 @@ char* OBJENTRY_GETCACHEBUFFSTATUS = SignatureScan<char*>("\x4C\x8D\x46\x08\x48\x
 
 char* OBJENTRY_GETMDLX = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x85\xD2\x48\x8D\x79\x08\x48\x8D\x1D\x48", "xxxxxxxxxxxxxxxxxxxxx");
 
+char* BGM_WRITE_BUFFER;
+
 char* MDLX_WRITE_BUFFER = ResolveRelativeAddress<char*>(OBJENTRY_READREQUESTSUB, 0xE);
 char* APDX_WRITE_BUFFER = MDLX_WRITE_BUFFER + 0x28;
 char* MSET_WRITE_BUFFER = APDX_WRITE_BUFFER + 0x28;
 
-char* BGM_WRITE_BUFFER;
+char* MENU_FNAME_BUFFER = ResolveRelativeAddress<char*>("\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\x05\x00\x00\x00\x00\x48\x8B\xF2\x48\x2B\xD0\x48\x8B\xF9\x66\x0F\x1F\x44\x00\x00\x44\x0F\xB6\x00\x0F\xB6\x0C\x10\x44\x2B\xC1", "xxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxx", 0x0D);
+char* FAC_WRITE_BUFFER = ResolveRelativeAddress<char*>("\x48\x83\xEC\x68\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x50\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\x38\x05\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\x66\x83\x3D\x00\x00\x00\x00\x00", "xxxxxxx????xxxxxxxxx????xxxx????xx????xx????xxx????x", 0x1F9);
 
 uint8_t CONTROL_SCHEME = 0x00;
 
@@ -955,6 +958,7 @@ char* ReFined::Continuous::ConstructBGM(int number)
 
 	return BGM_WRITE_BUFFER;
 }
+
 char* ReFined::Continuous::ConstructMDLX(char* objentryEntry, char* buff)
 {
 	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
@@ -1010,7 +1014,7 @@ char* ReFined::Continuous::ConstructAPDX(char* objentryEntry, char* buff)
 	{
 		sprintf(_useBuff, _fetchPath.c_str(), _apdxName, "fm");
 
-		if (YS::FILE::GetSize(_useBuff) == 0x00)
+		if (!YS::FILE::GetSize(_useBuff))
 			sprintf(_useBuff, "obj/%s.a.fm", _apdxName);
 	}
 
@@ -1018,14 +1022,14 @@ char* ReFined::Continuous::ConstructAPDX(char* objentryEntry, char* buff)
 	{
 		sprintf(_useBuff, _fetchPath.c_str(), _apdxName, reinterpret_cast<char*>(*YS::REGION::pint_region));
 
-		if (YS::FILE::GetSize(_useBuff) == 0x00)
+		if (!YS::FILE::GetSize(_useBuff))
 			sprintf(_useBuff, _fetchPath.c_str(), _apdxName, "us");
 
-		if (YS::FILE::GetSize(_useBuff) == 0x00)
+		if (!YS::FILE::GetSize(_useBuff))
 		{
 			sprintf(_useBuff, "obj/%s.a.%s", _apdxName, reinterpret_cast<char*>(*YS::REGION::pint_region));
 
-			if (YS::FILE::GetSize(_useBuff) == 0x00)
+			if (!YS::FILE::GetSize(_useBuff))
 				sprintf(_useBuff, "obj/%s.a.us", _apdxName);
 		}
 	}
@@ -1056,7 +1060,7 @@ char* ReFined::Continuous::ConstructMSET(char* objentryEntry, uint32_t objectID,
 	{
 		sprintf(_useBuff, _fetchPath.c_str(), _msetName);
 
-		if (YS::FILE::GetSize(_useBuff) == 0x00)
+		if (!YS::FILE::GetSize(_useBuff))
 			sprintf(_useBuff, "obj/%s", _msetName);
 
 		if ((objectID & 0x10000000) != 0x00 || (objectID == 0x03EE || (objectID & 0x20000000) != 0x00) && *(objentryEntry + 0x04) != 0x00 && YS::CACHE_BUFF::GetStatus(_useBuff) < 2)
@@ -1067,7 +1071,7 @@ char* ReFined::Continuous::ConstructMSET(char* objentryEntry, uint32_t objectID,
 			_fetchPath.append("_MEMO.mset");
 			sprintf(_useBuff, _fetchPath.c_str(), _fetchNameMSET.c_str());
 
-			if (YS::FILE::GetSize(_useBuff) == 0x00)
+			if (!YS::FILE::GetSize(_useBuff))
 				sprintf(_useBuff, "obj/%s_MEMO.mset", _fetchNameMSET.c_str());
 		}
 
@@ -1079,13 +1083,118 @@ char* ReFined::Continuous::ConstructMSET(char* objentryEntry, uint32_t objectID,
 		_fetchPath.append("_MEMO.mset");
 		sprintf(_useBuff, _fetchPath.c_str(), objentryEntry + 0x08);
 
-		if (YS::FILE::GetSize(_useBuff) == 0x00)
+		if (!YS::FILE::GetSize(_useBuff))
 			sprintf(_useBuff, "obj/%s_MEMO.mset", objentryEntry + 0x08);
 
 		return _useBuff;
 	}
 
 	return nullptr;
+}
+
+char* ReFined::Continuous::ConstructMENU(char* buff, char* fileName)
+{
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	auto _regionPointer = (!YS::REGION::Get() || YS::REGION::Get() == 7) ? reinterpret_cast<char*>(*YS::REGION::pint_region_default) : reinterpret_cast<char*>(*YS::REGION::pint_region);
+
+	if (!strcmp(MENU_FNAME_BUFFER, fileName))
+	{
+		string _fetchPath = "file/%s/%s";
+
+		if (_fetchObject == 0x0200)
+			_fetchPath = "file_2nd/%s/%s";
+
+		else if (_fetchObject == 0x0400)
+			_fetchPath = "file_3rd/%s/%s";
+
+		sprintf(buff, _fetchPath.c_str(), _regionPointer, fileName);
+
+		if (!YS::FILE::GetSize(buff))
+		{
+			_fetchPath.resize(_fetchPath.size() - 0x03);
+			sprintf(buff, _fetchPath.c_str(), fileName);
+
+			if (!YS::FILE::GetSize(buff))
+			{
+				sprintf(buff, "file/%s/%s", _regionPointer, fileName);
+
+				if (!YS::FILE::GetSize(buff))
+					sprintf(buff, "file/%s", fileName);
+			}
+		}
+
+		return buff;
+	}
+
+	else
+	{
+		string _fetchPath = "menu/%s/%s";
+
+		if (_fetchObject == 0x0200)
+			_fetchPath = "menu_2nd/%s/%s";
+
+		else if (_fetchObject == 0x0400)
+			_fetchPath = "menu_3rd/%s/%s";
+
+		auto _checkPhoto = strstr(fileName, "jm_photo/");
+		sprintf(buff, _fetchPath.c_str(), _regionPointer, fileName);
+
+		if (!YS::FILE::GetSize(buff))
+		{
+			if (_checkPhoto)
+				goto SKIP_PHOTO;
+
+			_fetchPath.resize(_fetchPath.size() - 0x03);
+			sprintf(buff, _fetchPath.c_str(), fileName);
+
+			if (!YS::FILE::GetSize(buff))
+			{
+				SKIP_PHOTO:
+				sprintf(buff, "menu/%s/%s", _regionPointer, fileName);
+
+				if (!YS::FILE::GetSize(buff) && !_checkPhoto)
+					sprintf(buff, "menu/%s", fileName);
+			}
+		}
+
+		return buff;
+	}
+}
+
+void ReFined::Continuous::ConstructFAC(uint16_t id)
+{
+	auto _writeBuff = *reinterpret_cast<char**>(FAC_WRITE_BUFFER);
+	string _fetchFilePath(_writeBuff);
+
+	_fetchFilePath = _fetchFilePath.substr(0x04, _fetchFilePath.size() - 0x04);
+	_fetchFilePath = _fetchFilePath.substr(0x00, _fetchFilePath.size() - 0x04);
+
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	string _fetchPath = "menu";
+
+	if (_fetchObject == 0x0200)
+		_fetchPath = "menu_2nd";
+
+	else if (_fetchObject == 0x0400)
+		_fetchPath = "menu_3rd";
+
+	_fetchPath = _fetchPath.append(_fetchFilePath);
+	_fetchPath = _fetchPath.append("%d.imd");
+
+	sprintf(_writeBuff, _fetchPath.c_str(), id);
+
+	if (!YS::FILE::GetSize(_writeBuff))
+	{
+		_fetchPath = "menu";
+		_fetchPath = _fetchPath.append(_fetchFilePath);
+		_fetchPath = _fetchPath.append("%d.imd");
+
+		sprintf(_writeBuff, _fetchPath.c_str(), id);
+	}
 }
 
 void ReFined::Continuous::ConstructITEMPIC(char* buff, uint16_t id)
@@ -1112,7 +1221,7 @@ void ReFined::Continuous::ConstructITEMPIC(char* buff, uint16_t id)
 
 	sprintf(buff, _fetchPath.c_str(), _fetchPictureID);
 
-	if (YS::FILE::GetSize(buff) == 0x00)
+	if (!YS::FILE::GetSize(buff))
 		sprintf(buff, "itempic/item-%03d.imd", _fetchPictureID);
 }
 

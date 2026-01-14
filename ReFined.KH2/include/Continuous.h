@@ -29,12 +29,12 @@ namespace ReFined
 			static void EnforceControls();
 
 			static char* ConstructBGM(int number);
-
+			static char* ConstructMENU(char* buff, char* fileName);
 			static char* ConstructMDLX(char* objentryEntry, char* buff);
 			static char* ConstructAPDX(char* objentryEntry, char* buff);
-
 			static char* ConstructMSET(char* objentryEntry, uint32_t objectID, char* buff);
 
+			static void ConstructFAC(uint16_t id);
 			static void ConstructITEMPIC(char* buff, uint16_t id);
 	};
 }

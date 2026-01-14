@@ -16,6 +16,7 @@ extern "C"
 			static Get_t Get;
 
 			static uint64_t* pint_region;
+			static uint64_t* pint_region_default;
 		};
 	}
 }

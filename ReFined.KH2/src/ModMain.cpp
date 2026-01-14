@@ -25,7 +25,6 @@ extern "C"
 {
 	__declspec(dllexport) void OnInit(wchar_t* mod_path)
 	{			
-
 		auto _fetchCommandLine = wstring(GetCommandLine());
 
 		IS_FASTBOOT = _fetchCommandLine.find(L"-fastboot") != wstring::npos;
@@ -143,18 +142,14 @@ extern "C"
 		char* _itempicFirst = SignatureScan<char*>("\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x50\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x48\x83\x3D\x00\x00\x00\x00\x00\x48\x8B\xD9\x74\x13", "xxxxxxxxxxxxx????xxxxxxxxxx????xxxxxx") + 0x6F;
 		char* _itempicSecond = SignatureScan<char*>("\x48\x83\xEC\x68\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x50\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\x38\x05\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\x66\x83\x3D\x00\x00\x00\x00\x00", "xxxxxxx????xxxxxxxxx????xxxx????xx????xx????xxx????x") + 0x7D;
 
+		char* _facFunction = SignatureScan<char*>("\x48\x83\xEC\x68\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x50\xE8\x00\x00\x00\x00\x84\xC0\x0F\x85\x00\x00\x00\x00\x38\x05\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\x66\x83\x3D\x00\x00\x00\x00\x00", "xxxxxxx????xxxxxxxxx????xxxx????xx????xx????xxx????x") + 0x231;
+
 		char* _treasurePtr = ResolveRelativeAddress<char*>(_itempicFirst, 0x7A);
 
-		vector<uint8_t> _doNotQuestionThisPlease =
-		{
-			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-		};
-
 		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructITEMPIC);
-		memcpy(_doNotQuestionThisPlease.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_funcRedirectInst.data() + 0x06, &_fetchVerify, 0x08);
 
-		memcpy(_fetchMDLX + 0x10, _doNotQuestionThisPlease.data(), _doNotQuestionThisPlease.size());
+		memcpy(_fetchMDLX + 0x10, _funcRedirectInst.data(), _funcRedirectInst.size());
 
 		vector<uint8_t> _firstPatch =
 		{
@@ -188,6 +183,20 @@ extern "C"
 		memcpy(_secondPatch.data() + 0x06, &_calcCallItempic, 0x04);
 		memcpy(_itempicSecond, _secondPatch.data(), _secondPatch.size());
 
+		fill(_facFunction, _facFunction + 0x14, 0x90);
+
+		vector<uint8_t> _facPatch =
+		{
+			0x48, 0x8B, 0xCD,
+			0xFF, 0x15, 0x02, 0x00, 0x00, 0x00, 0xEB, 0x08, 
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+		};
+
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructFAC);
+
+		memcpy(_facPatch.data() + 0x0B, &_fetchVerify, 0x08);
+		memcpy(_facFunction, _facPatch.data(), _facPatch.size());
+
 		char* _fetchBGM = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x20\x80\x3D\x00\x00\x00\x00\x0D\x8B\xD9\x75\x00\x83\xF9\x75\xBB\x05\x02\x00\x00\xB8\x09\x02\x00\x00\x0F\x45", "xxxxxxxx????xxxx?xxxxxxxxxxxxxxx");
 		
 		fill(_fetchBGM, _fetchBGM + 0x78, 0x90);
@@ -196,6 +205,15 @@ extern "C"
 
 		memcpy(_funcRedirectInst.data() + 0x06, &_fetchVerify, 0x08);
 		memcpy(_fetchBGM, _funcRedirectInst.data(), _funcRedirectInst.size());
+
+		char* _fetchMENU = SignatureScan<char*>("\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x48\x8B\x05\x00\x00\x00\x00\x48\x8B\xF2\x48\x2B\xD0\x48\x8B\xF9\x66\x0F\x1F\x44\x00\x00\x44\x0F\xB6\x00\x0F\xB6\x0C\x10\x44\x2B\xC1", "xxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+		fill(_fetchMENU, _fetchMENU + 0x191, 0x90);
+
+		_fetchVerify = reinterpret_cast<uint64_t>(ReFined::Continuous::ConstructMENU);
+
+		memcpy(_funcRedirectInst.data() + 0x06, &_fetchVerify, 0x08);
+		memcpy(_fetchMENU, _funcRedirectInst.data(), _funcRedirectInst.size());
 
 	    char* _magicClearFunc = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
 		char* _fadeReset = reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED;
