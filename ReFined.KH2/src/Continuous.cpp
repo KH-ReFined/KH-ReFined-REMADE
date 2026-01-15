@@ -1064,7 +1064,7 @@ char* ReFined::Continuous::ConstructMENU(char* buff, char* fileName)
 	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
 	auto _regionPointer = (!YS::REGION::Get() || YS::REGION::Get() == 7) ? reinterpret_cast<char*>(*YS::REGION::pint_region_default) : reinterpret_cast<char*>(*YS::REGION::pint_region);
 
-	if (!strcmp(MENU_FNAME_BUFFER, fileName))
+	if (!strcmp(*reinterpret_cast<char**>(MENU_FNAME_BUFFER), fileName))
 	{
 		string _constructFile = _fetchConfig & 0x0200 ? "file_2nd/%s/%s" : (_fetchConfig & 0x0400 ? "file_3rd/%s/%s" : "file/%s/%s");
 
