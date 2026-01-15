@@ -1039,57 +1039,72 @@ char* ReFined::Continuous::ConstructAPDX(char* objentryEntry, char* buff)
 
 char* ReFined::Continuous::ConstructMSET(char* objentryEntry, uint32_t objectID, char* buff)
 {
-	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
-	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
-
-	string _fetchPath = "obj/%s";
-
-	if (_fetchObject == 0x0200)
-		_fetchPath = "obj_2nd/%s";
-
-	else if (_fetchObject == 0x0400)
-		_fetchPath = "obj_3rd/%s";
-
+	char* _mdlxName = objentryEntry + 0x08;
 	char* _msetName = objentryEntry + 0x28;
+
 	char* _useBuff = MSET_WRITE_BUFFER;
 
 	if (buff != nullptr)
 		_useBuff = buff;
 
-	if (*_msetName != 0x00)
+	auto _fetchConfig = *reinterpret_cast<const uint16_t*>(YS::AREA::SaveData + 0x41A6);
+	auto _fetchObject = (_fetchConfig & 0x0200) == 0x0200 ? 0x0200 : ((_fetchConfig & 0x0400) == 0x0400 ? 0x0400 : 0x0000);
+
+	string _fetchMSET = _fetchObject == 0x0200 ? "obj_2nd/%s.mset" : (_fetchObject == 0x0400 ? "obj_3rd/%s.mset" : "obj/%s.mset");
+	string _fetchMEMO = _fetchObject == 0x0200 ? "obj_2nd/%s_MEMO.mset" : (_fetchObject == 0x0400 ? "obj_3rd/%s_MEMO.mset" : "obj/%s_MEMO.mset");
+
+	if (!*_msetName)
 	{
-		sprintf(_useBuff, _fetchPath.c_str(), _msetName);
+		if ((objectID & 0x10000000) == 0x00)
+			return nullptr;
 
-		if (!YS::FILE::GetSize(_useBuff))
-			sprintf(_useBuff, "obj/%s", _msetName);
+		sprintf(_useBuff, _fetchMEMO.c_str(), _mdlxName);
 
-		if ((objectID & 0x10000000) != 0x00 || (objectID == 0x03EE || (objectID & 0x20000000) != 0x00) && *(objentryEntry + 0x04) != 0x00 && YS::CACHE_BUFF::GetStatus(_useBuff) < 2)
-		{
-			auto _fetchNameMSET = string(_msetName);
-			_fetchNameMSET.resize(_fetchNameMSET.size() - 0x05);
-
-			_fetchPath.append("_MEMO.mset");
-			sprintf(_useBuff, _fetchPath.c_str(), _fetchNameMSET.c_str());
-
-			if (!YS::FILE::GetSize(_useBuff))
-				sprintf(_useBuff, "obj/%s_MEMO.mset", _fetchNameMSET.c_str());
-		}
+		if (YS::FILE::GetSize(_useBuff) == 0x00)
+			sprintf(_useBuff, "obj/%s_MEMO.mset", _mdlxName);
 
 		return _useBuff;
 	}
 
-	else if ((objectID & 0x10000000) != 0x00)
-	{
-		_fetchPath.append("_MEMO.mset");
-		sprintf(_useBuff, _fetchPath.c_str(), objentryEntry + 0x08);
+	auto _fetchNameMSET = string(_msetName);
+	_fetchNameMSET.resize(_fetchNameMSET.size() - 0x05);
 
-		if (!YS::FILE::GetSize(_useBuff))
-			sprintf(_useBuff, "obj/%s_MEMO.mset", objentryEntry + 0x08);
+	sprintf(_useBuff, _fetchMSET.c_str(), _fetchNameMSET.c_str());
+
+	if (YS::FILE::GetSize(_useBuff) == 0x00)
+		sprintf(_useBuff, "obj/%s.mset", _fetchNameMSET.c_str());
+
+	if ((objectID & 0x10000000) != 0x00)
+	{
+		LABEL_12:
+		sprintf(_useBuff, _fetchMEMO.c_str(), _fetchNameMSET.c_str());
+
+		if (YS::FILE::GetSize(_useBuff) == 0x00)
+			sprintf(_useBuff, "obj/%s_MEMO.mset", _fetchNameMSET.c_str());
 
 		return _useBuff;
 	}
 
-	return nullptr;
+	if (objectID <= 0x31A)
+	{
+		if (objectID > 0x318)
+			goto LABEL_10;
+
+		LABEL_9:
+		if ((objectID & 0x20000000) == 0x00)
+			return _useBuff;
+
+		goto LABEL_10;
+	}
+
+	if (objectID != 0x03EE)
+		goto LABEL_9;
+
+	LABEL_10:
+	if (*(objentryEntry + 0x04) != 0x00 && YS::CACHE_BUFF::GetStatus(_useBuff) < 2)
+		goto LABEL_12;
+
+	return _useBuff;
 }
 
 char* ReFined::Continuous::ConstructMENU(char* buff, char* fileName)
