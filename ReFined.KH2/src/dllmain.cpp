@@ -2555,7 +2555,9 @@ extern "C"
         if (!INITIALIZED)
         {
             // Abort function if the game is not loaded fully yet.
-            if (!YS::MESSAGE::GetData(0x8ADC))
+            auto _fetchFake = YS::MESSAGE::GetData(0x8ADC);
+
+            if (!_fetchFake)
                 return;
 
             // Initialize all module initializations.
@@ -2611,7 +2613,8 @@ extern "C"
 
             // This code block handles RESOURCE packs.
 
-            if (YS::MESSAGE::GetData(0x573C))
+
+            if (YS::MESSAGE::GetData(0x573C) != _fetchFake)
             {
                 _resourceConfig[0] += 1;
 
@@ -2624,7 +2627,7 @@ extern "C"
                 _resourceConfig.push_back(0x0200);
             }
 
-            if (YS::MESSAGE::GetData(0x573E))
+            if (YS::MESSAGE::GetData(0x573E) != _fetchFake)
             {
                 _resourceConfig[0] += 1;
 
@@ -2642,7 +2645,7 @@ extern "C"
 
             // This code block handles MUSIC packs.
 
-            if (YS::MESSAGE::GetData(0x571B))
+            if (YS::MESSAGE::GetData(0x571B) != _fetchFake)
             {
                 _musicConfig[0] += 1;
 
@@ -2655,7 +2658,7 @@ extern "C"
                 _musicConfig.push_back(0x0080);
             }
 
-            if (YS::MESSAGE::GetData(0x571D))
+            if (YS::MESSAGE::GetData(0x571D) != _fetchFake)
             {
                 _musicConfig[0] += 1;
 
