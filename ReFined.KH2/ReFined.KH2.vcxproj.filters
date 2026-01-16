@@ -19,15 +19,6 @@
     <Filter Include="Source Files\kingdom_internal">
       <UniqueIdentifier>{3fab1346-0f58-433d-976d-1fd51085d132}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\dll_filler">
-      <UniqueIdentifier>{906fb007-0cc1-4d89-b6dd-76d86fcb6fe7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\refined_internal">
-      <UniqueIdentifier>{85bef1f2-315f-4bb2-9c81-ef288c3b8235}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\refined_internal">
-      <UniqueIdentifier>{c1869a5c-02f5-4ba0-bf65-c242931f9965}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\refined_classes">
       <UniqueIdentifier>{ce854dc9-f3e2-4ac1-a858-3ddde9af991a}</UniqueIdentifier>
     </Filter>
@@ -168,15 +159,6 @@
     <ClInclude Include="include\discord\achievement_manager.h">
       <Filter>Header Files\discord_sdk</Filter>
     </ClInclude>
-    <ClInclude Include="include\Continuous.h">
-      <Filter>Header Files\refined_internal</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Critical.h">
-      <Filter>Header Files\refined_internal</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Demand.h">
-      <Filter>Header Files\refined_internal</Filter>
-    </ClInclude>
     <ClInclude Include="include\continue_menu.h">
       <Filter>Header Files\refined_classes</Filter>
     </ClInclude>
@@ -220,9 +202,6 @@
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
     <ClInclude Include="include\ini.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ModMain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kingdom\form_level.h">
@@ -380,21 +359,6 @@
     <ClCompile Include="src\continue_menu.cpp">
       <Filter>Source Files\refined_classes</Filter>
     </ClCompile>
-    <ClCompile Include="src\Demand.cpp">
-      <Filter>Source Files\refined_internal</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Continuous.cpp">
-      <Filter>Source Files\refined_internal</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Critical.cpp">
-      <Filter>Source Files\refined_internal</Filter>
-    </ClCompile>
-    <ClCompile Include="src\dllmain.cpp">
-      <Filter>Source Files\dll_filler</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ModMain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\kingdom\world.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
@@ -472,6 +436,9 @@
     </ClCompile>
     <ClCompile Include="src\kingdom\region.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dllmain.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

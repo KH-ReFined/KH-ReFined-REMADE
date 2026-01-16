@@ -20,9 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\continue_menu.h" />
-    <ClInclude Include="include\Continuous.h" />
-    <ClInclude Include="include\Critical.h" />
-    <ClInclude Include="include\Demand.h" />
     <ClInclude Include="include\discord\achievement_manager.h" />
     <ClInclude Include="include\discord\activity_manager.h" />
     <ClInclude Include="include\discord\application_manager.h" />
@@ -90,7 +87,6 @@
     <ClInclude Include="include\kingdom\weapon.h" />
     <ClInclude Include="include\kingdom\weapon_entry.h" />
     <ClInclude Include="include\kingdom\world.h" />
-    <ClInclude Include="include\ModMain.h" />
     <ClInclude Include="include\SigScan.h" />
   </ItemGroup>
   <ItemGroup>
@@ -98,9 +94,6 @@
       <FileType>CppHeader</FileType>
     </ClCompile>
     <ClCompile Include="src\continue_menu.cpp" />
-    <ClCompile Include="src\Continuous.cpp" />
-    <ClCompile Include="src\Critical.cpp" />
-    <ClCompile Include="src\Demand.cpp" />
     <ClCompile Include="src\discord\achievement_manager.cpp" />
     <ClCompile Include="src\discord\activity_manager.cpp" />
     <ClCompile Include="src\discord\application_manager.cpp" />
@@ -165,7 +158,6 @@
     <ClCompile Include="src\kingdom\weapon_entry.cpp" />
     <ClCompile Include="src\kingdom\weapon_mset.cpp" />
     <ClCompile Include="src\kingdom\world.cpp" />
-    <ClCompile Include="src\ModMain.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

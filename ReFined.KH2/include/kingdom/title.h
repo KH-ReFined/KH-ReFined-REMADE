@@ -14,6 +14,7 @@ extern "C"
 			{
 			public:
 				static bool* IsTitle;
+				static char* Title2LD;
 				static uint8_t* IntroSelect;
 			};
 		}
