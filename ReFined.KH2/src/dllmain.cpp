@@ -17,7 +17,7 @@
 #include "cmconfig.h"
 #include "command_draw.h"
 #include "command_elem.h"
-#include "config_menu.h"
+#include "hookconfig.h"
 #include "converter.h"
 #include "egs.h"
 #include "exp.h"
@@ -62,10 +62,10 @@
 #include "world.h"
 
 #include "SigScan.h"
-#include "intro_menu.h"
 #include "continue_menu.h"
 
 #include "ini.h"
+#include <hookintro.h>
 
 
 using namespace std;
@@ -459,8 +459,6 @@ vector<uint16_t> ABILITY_ARRAY;
 char* PICTURE_APPEAR_FUNC = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x30\x48\x63\x41\x34\x48\x8B\xD9\x3B\x41\x30\x0F\x84\x00\x00\x00\x00\x48\x69\xD0\x60\x05\x00\x00\x48\x89\x7C\x24\x48", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx");
 bool IS_PICTURE_EDITED = false;
 
-bool INTRO_APPLIED = false;
-bool ENFORCE_INTRO = false;
 
 uint32_t POSITIVE_ASPECT_OFFSET = 0x55;
 uint32_t NEGATIVE_ASPECT_OFFSET = 0xFFFFFFAB;
@@ -1618,32 +1616,6 @@ void PROCESS_DEATH()
         IS_DEAD = false;
 }
 
-void HANDLE_INTRO()
-{
-    uint16_t _fetchSettings = 0x0000;
-
-    if (*YS::TITLE::IsTitle)
-    {
-        if (INTRO_APPLIED)
-            INTRO_APPLIED = false;
-
-        ENFORCE_INTRO = *YS::TITLE::IntroSelect == 0x00;
-
-        _fetchSettings = 0x0408 |
-            (*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x204) == 0x00 ? 0x0001 : 0x0000) |
-            (*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x208) == 0x00 ? 0x0004 : (*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x208) == 0x01 ? 0x0002 : 0x0000)) |
-            (*(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x20C) == 0x00 ? 0x2000 : 0x0000);
-    }
-
-    else if (!*YS::TITLE::IsTitle && !INTRO_APPLIED && ENFORCE_INTRO && YS::AREA::Current->World == 0x02 && (YS::AREA::Current->Room == 0x01 || YS::AREA::Current->Room == 0x20))
-    {
-        memcpy(YS::AREA::SaveData + 0x41A4, &_fetchSettings, 0x02);
-
-        ENFORCE_INTRO = false;
-        INTRO_APPLIED = true;
-    }
-}
-
 void HANDLE_ASPECT()
 {
     float _resolutionHorizontal = *reinterpret_cast<float*>(VIEWPORT3D_ADDR + 0x10);
@@ -2231,9 +2203,9 @@ extern "C"
         YS::PANACEA_ALLOC::Allocate("CONFIG_MEMORY", 0x200);
         YS::PANACEA_ALLOC::Allocate("INTRO_MEMORY", 0x300);
 
-        ReFined::IntroMenu::Submit();
         ReFined::Continue::Submit();
 
+        Tz::HookIntro::Submit();
         Tz::HookConfig::Submit();
 
         // Prevent SOFTRESET from resetting Fade status for a smooth-ass transition.
@@ -2431,82 +2403,6 @@ extern "C"
             *reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0x214) = 0x00;
         }
 
-        // Re:Fined Module Initialization, brought to you by Topaz' Reality (Patent Pending!)
-
-        WIN32_FIND_DATAW _foundFile;
-        wchar_t _modulePath[MAX_PATH];
-
-        wcscpy(_modulePath, mod_path);
-        wcscat(_modulePath, L"\\dll\\modules\\ModuleRF-*.dll");
-
-        auto _foundFileHandle = FindFirstFileW(_modulePath, &_foundFile);
-
-        if (_foundFileHandle != INVALID_HANDLE_VALUE)
-        {
-            do
-            {
-                wchar_t _foundFilePath[MAX_PATH];
-
-                wcscpy(_foundFilePath, mod_path);
-                wcscat(_foundFilePath, L"\\dll\\modules\\");
-                wcscat(_foundFilePath, _foundFile.cFileName);
-
-                auto _moduleHandle = LoadLibraryW(_foundFilePath);
-
-                if (_moduleHandle)
-                {
-                    uint8_t _importance = 0x00;
-
-                    void (*funcExec)() = (void(*)())GetProcAddress(_moduleHandle, "RF_ModuleExecute");
-                    void (*funcInit)(const wchar_t*) = (void(*)(const wchar_t*))GetProcAddress(_moduleHandle, "RF_ModuleInit");
-
-                    uint8_t* _moduleImportance = (uint8_t*)GetProcAddress(_moduleHandle, "RF_ImportanceLevel");
-
-                    bool (*_moduleEnsure)(const wchar_t*) = (bool(*)(const wchar_t*))GetProcAddress(_moduleHandle, "RF_EnsurePrerequisites");
-
-                    if (_moduleEnsure)
-                    {
-                        auto _checkEnsure = _moduleEnsure(mod_path);
-                        
-                        if (!_checkEnsure)
-                            continue;
-                    }
-
-                    if (_moduleImportance)
-                        _importance = *_moduleImportance;
-
-                    uint32_t* (*checkIntro)() = (uint32_t * (*)())GetProcAddress(_moduleHandle, "RF_CheckIntro");
-                    vector<uint32_t> _vectorIntro(0);
-
-                    if (checkIntro)
-                    {
-                        auto _fetchIntro = checkIntro();
-                        auto _sizeVector = 0x0C + 0x04 * (_fetchIntro[0] * 2);
-
-                        _vectorIntro.resize(_sizeVector);
-                        memcpy(_vectorIntro.data(), _fetchIntro, _sizeVector);
-
-                        auto _newEntry = ReFined::IntroMenu::Entry(_vectorIntro.at(0), _vectorIntro.at(1), _vectorIntro.at(2), vector<uint32_t>(_vectorIntro.begin() + 3, _vectorIntro.begin() + 3 + _vectorIntro.at(0)), vector<uint32_t>(_vectorIntro.begin() + 3 + _vectorIntro.at(0), _vectorIntro.begin() + 3 + _vectorIntro.at(0) + _vectorIntro.at(0)));
-                        ReFined::IntroMenu::Add(ReFined::IntroMenu::Children.size(), _newEntry);
-
-                        bool** introSeek = (bool**)GetProcAddress(_moduleHandle, "INTRO_SEEK");
-
-                        assert(introSeek != nullptr);
-                        *introSeek = reinterpret_cast<bool*>(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200 + ((ReFined::IntroMenu::Children.size() - 1) * 0x04));
-                    }
-
-                    if (funcInit)
-                        _initModule.insert(_initModule.end(), { _importance, funcInit });
-
-                    if (funcExec)
-                        _execModule.insert(_execModule.end(), { _importance, funcExec });
-                }
-
-            } while (FindNextFileW(_foundFileHandle, &_foundFile));
-
-            FindClose(_foundFileHandle);
-        }
-
         // Handle reFined.cfg file.
 
         wchar_t _configPath[MAX_PATH];
@@ -2562,10 +2458,6 @@ extern "C"
 
             if (!_fetchFake)
                 return;
-
-            // Initialize all module initializations.
-            for (auto _initPair : _initModule)
-                _initPair.second(MOD_PATH);
 
             // If "00shopface.bin" exists, patch all SHOPFACE functions to use the file instead.
             if (YS::FILE::GetSize("00shopface.bin"))
@@ -2643,7 +2535,19 @@ extern "C"
             }
 
             if (_resourceConfig[0] > 1)
+            {
                 Tz::HookConfig::Add(Tz::HookConfig::Entries.size() - 0x03, _resourceConfig);
+
+                std::vector<uint32_t> _resourceIntro;
+
+                for (auto _element : _resourceConfig)
+                    _resourceIntro.push_back(_element);
+
+                _resourceIntro.insert(_resourceIntro.begin() + 0x02, 0xFFFF);
+                _resourceIntro[0x01] = 0x5736;
+
+                Tz::HookIntro::Add(UINT32_MAX, _resourceIntro);
+            }
 
             // This code block handles MUSIC packs.
 
@@ -2674,7 +2578,145 @@ extern "C"
             }
 
             if (_musicConfig[0] > 1)
+            {
                 Tz::HookConfig::Add(Tz::HookConfig::Entries.size() - 0x03, _musicConfig);
+
+                std::vector<uint32_t> _musicIntro;
+
+                for (auto _element : _musicConfig)
+                    _musicIntro.push_back(_element);
+
+                _musicIntro.insert(_musicIntro.begin() + 0x02, 0xFFFF);
+                _musicIntro[0x01] = 0x5735;
+
+                Tz::HookIntro::Add(UINT32_MAX, _musicIntro);
+            }
+
+            // Re:Fined Module Initialization, brought to you by Topaz' Reality (Patent Pending!)
+
+            WIN32_FIND_DATAW _foundFile;
+            wchar_t _modulePath[MAX_PATH];
+
+            wcscpy(_modulePath, MOD_PATH);
+            wcscat(_modulePath, L"\\dll\\modules\\ModuleRF-*.dll");
+
+            auto _foundFileHandle = FindFirstFileW(_modulePath, &_foundFile);
+
+            if (_foundFileHandle != INVALID_HANDLE_VALUE)
+            {
+                do
+                {
+                    wchar_t _foundFilePath[MAX_PATH];
+
+                    wcscpy(_foundFilePath, MOD_PATH);
+                    wcscat(_foundFilePath, L"\\dll\\modules\\");
+                    wcscat(_foundFilePath, _foundFile.cFileName);
+
+                    auto _moduleHandle = LoadLibraryW(_foundFilePath);
+
+                    if (_moduleHandle)
+                    {
+                        uint8_t _importance = 0x00;
+
+                        void (*funcExec)() = (void(*)())GetProcAddress(_moduleHandle, "RF_ModuleExecute");
+                        void (*funcInit)(const wchar_t*) = (void(*)(const wchar_t*))GetProcAddress(_moduleHandle, "RF_ModuleInit");
+
+                        uint8_t* _moduleImportance = (uint8_t*)GetProcAddress(_moduleHandle, "RF_ImportanceLevel");
+
+                        bool (*_moduleEnsure)(const wchar_t*) = (bool(*)(const wchar_t*))GetProcAddress(_moduleHandle, "RF_EnsurePrerequisites");
+
+                        if (_moduleEnsure)
+                        {
+                            auto _checkEnsure = _moduleEnsure(MOD_PATH);
+
+                            if (!_checkEnsure)
+                                continue;
+                        }
+
+                        if (_moduleImportance)
+                            _importance = *_moduleImportance;
+
+                        uint32_t* (*checkIntro)() = (uint32_t * (*)())GetProcAddress(_moduleHandle, "RF_CheckIntro");
+                        uint16_t* (*checkConfig)() = (uint16_t * (*)())GetProcAddress(_moduleHandle, "RF_CheckConfig");
+
+                        vector<uint32_t> _vectorIntro(0);
+                        vector<uint16_t> _vectorConfig(0);
+
+                        if (checkIntro)
+                        {
+                            auto _fetchIntro = checkIntro();
+                            auto _sizeVector = 0x0C + 0x04 * (_fetchIntro[0] * 3);
+
+                            _vectorIntro.resize(_sizeVector / 4);
+                            memcpy(_vectorIntro.data(), _fetchIntro, _sizeVector);
+
+                            Tz::HookIntro::Add(UINT32_MAX, _vectorIntro);
+
+                            uint32_t** introSeek = (uint32_t**)GetProcAddress(_moduleHandle, "INTRO_SEEK");
+
+                            assert(introSeek != nullptr);
+                            *introSeek = reinterpret_cast<uint32_t*>(YS::PANACEA_ALLOC::Get("INTRO_MEMORY") + 0x200 + ((Tz::HookIntro::Entries.size() - 1) * 0x04));
+                        }
+
+                        if (checkConfig)
+                        {
+                            auto _fetchConfig = checkConfig();
+                            auto _sizeVector = 0x04 + 0x02 * (_fetchConfig[0] * 3);
+
+                            _vectorConfig.resize(_sizeVector / 2);
+                            memcpy(_vectorConfig.data(), _fetchConfig, _sizeVector);
+
+                            Tz::HookConfig::Add(UINT32_MAX, _vectorConfig);
+
+                            uint16_t** configSeek = (uint16_t**)GetProcAddress(_moduleHandle, "CONFIG_SEEK");
+
+                            assert(configSeek != nullptr);
+                            {
+                                uint16_t _checkBitwise = 0x00;
+
+                                for (int i = 0; i < Tz::HookConfig::Entries.size(); i++)
+                                {
+                                    auto _fetchCount = Tz::HookConfig::Entries[i][0];
+
+                                    for (int z = 0; z < _fetchCount; z++)
+                                    {
+                                        auto _fetchBitwise = Tz::HookConfig::Entries[i][0x04 + (0x02 * _fetchCount * 0x02) + z];
+
+                                        if (_checkBitwise & _fetchBitwise)
+                                        {
+                                            if (i == Tz::HookConfig::Entries.size() - 1)
+                                                *configSeek = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A6);
+
+                                            else
+                                                continue;
+                                        }
+
+                                        if (i == Tz::HookConfig::Entries.size() - 1)
+                                        {
+                                            *configSeek = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x41A4);
+                                            break;
+                                        }
+
+                                        _checkBitwise |= _fetchBitwise;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (funcInit)
+                            _initModule.insert(_initModule.end(), { _importance, funcInit });
+
+                        if (funcExec)
+                            _execModule.insert(_execModule.end(), { _importance, funcExec });
+                    }
+
+                } while (FindNextFileW(_foundFileHandle, &_foundFile));
+
+                FindClose(_foundFileHandle);
+            }
+
+            for (auto _initPair : _initModule)
+                _initPair.second(MOD_PATH);
 
             // This is an edge-case handler just in case someone don't wanna use shortcut sets.
 
@@ -2693,13 +2735,13 @@ extern "C"
     
         else
         {
+            Tz::HookIntro::Handle();
             Tz::HookConfig::Handle();
 
             REGISTER_MAGIC();
             REGISTER_ABILITY();
             SHOW_INFORMATION();
             PROCESS_DEATH();
-            HANDLE_INTRO();
             RETRY_BATTLES();
 
             SOFT_RESET();

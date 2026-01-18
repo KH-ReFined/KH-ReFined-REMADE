@@ -38,14 +38,13 @@
     <ClInclude Include="include\discord\user_manager.h" />
     <ClInclude Include="include\discord\voice_manager.h" />
     <ClInclude Include="include\ini.h" />
-    <ClInclude Include="include\intro_menu.h" />
     <ClInclude Include="include\kingdom\area.h" />
     <ClInclude Include="include\kingdom\axa.h" />
     <ClInclude Include="include\kingdom\cache_buff.h" />
     <ClInclude Include="include\kingdom\cmconfig.h" />
     <ClInclude Include="include\kingdom\command_draw.h" />
     <ClInclude Include="include\kingdom\command_elem.h" />
-    <ClInclude Include="include\kingdom\config_menu.h" />
+    <ClInclude Include="include\kingdom\hookconfig.h" />
     <ClInclude Include="include\kingdom\converter.h" />
     <ClInclude Include="include\kingdom\egs.h" />
     <ClInclude Include="include\kingdom\event.h" />
@@ -56,6 +55,7 @@
     <ClInclude Include="include\kingdom\friend.h" />
     <ClInclude Include="include\kingdom\gauge.h" />
     <ClInclude Include="include\kingdom\hardpad.h" />
+    <ClInclude Include="include\kingdom\hookintro.h" />
     <ClInclude Include="include\kingdom\information.h" />
     <ClInclude Include="include\kingdom\info_base.h" />
     <ClInclude Include="include\kingdom\item.h" />
@@ -109,13 +109,12 @@
     <ClCompile Include="src\discord\user_manager.cpp" />
     <ClCompile Include="src\discord\voice_manager.cpp" />
     <ClCompile Include="src\dllmain.cpp" />
-    <ClCompile Include="src\intro_menu.cpp" />
     <ClCompile Include="src\kingdom\area.cpp" />
     <ClCompile Include="src\kingdom\cache_buff.cpp" />
     <ClCompile Include="src\kingdom\cmconfig.cpp" />
     <ClCompile Include="src\kingdom\command_draw.cpp" />
     <ClCompile Include="src\kingdom\command_elem.cpp" />
-    <ClCompile Include="src\kingdom\config_menu.cpp" />
+    <ClCompile Include="src\kingdom\hookconfig.cpp" />
     <ClCompile Include="src\kingdom\converter.cpp" />
     <ClCompile Include="src\kingdom\egs.cpp" />
     <ClCompile Include="src\kingdom\event.cpp" />
@@ -126,6 +125,7 @@
     <ClCompile Include="src\kingdom\friend.cpp" />
     <ClCompile Include="src\kingdom\gauge.cpp" />
     <ClCompile Include="src\kingdom\hardpad.cpp" />
+    <ClCompile Include="src\kingdom\hookintro.cpp" />
     <ClCompile Include="src\kingdom\information.cpp" />
     <ClCompile Include="src\kingdom\info_base.cpp" />
     <ClCompile Include="src\kingdom\item.cpp" />

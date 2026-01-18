@@ -32,10 +32,10 @@ extern "C"
 
 	__declspec(dllexport) uint32_t* RF_CheckIntro()
 	{
-		char* _allocMemory = (char*)malloc(0x07 * 0x04);
-		uint32_t _tempInt[] = { 0x02, 0x5730, 0xFFFF, 0x5738, 0x5739, 0x5731, 0x5732 };
+		uint32_t _tempInt[] = { 0x02, 0x5730, 0xFFFF, 0x5738, 0x5739, 0x5731, 0x5732, 0xFFFF, 0xFFFF };
+		char* _allocMemory = (char*)malloc(0x09 * 0x04);
 
-		memcpy(_allocMemory, _tempInt, 0x07 * 0x04);
+		memcpy(_allocMemory, _tempInt, 0x09 * 0x04);
 		return reinterpret_cast<uint32_t*>(_allocMemory);
 	}
 
@@ -140,7 +140,7 @@ extern "C"
 					memcpy(_saveData + 0x24FE, &_fetchWeapon, 0x01);
 					memcpy(_saveData + 0x2498, &_fetchDifficulty, 0x01);
 
-					memcpy(_saveData + 0x41A4, &_fetchConfig, 0x02);
+					memcpy(_saveData + 0x41A4, &_fetchConfig, 0x06);
 					memcpy(_saveData + 0x4270, _loadBAR + 0x6E, 0x02);
 
 					*(_currArea + 0x01) = 0x0E;

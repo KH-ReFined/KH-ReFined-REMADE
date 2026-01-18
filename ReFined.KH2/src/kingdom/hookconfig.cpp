@@ -1,4 +1,4 @@
-#include "config_menu.h"
+#include "hookconfig.h"
 
 bool CONFIG_INIT;
 bool CONFIG_FETCH;
@@ -43,7 +43,11 @@ vector<vector<uint16_t>> Tz::HookConfig::Entries = vector<vector<uint16_t>>
 
 void Tz::HookConfig::Add(int Index, vector<uint16_t> Input)
 {
-	Entries.insert(Entries.begin() + Index, Input);
+	if (Index == UINT32_MAX)
+		Entries.insert(Entries.end(), Input);
+	else
+		Entries.insert(Entries.begin() + Index, Input);
+
 	Submit();
 }
 
@@ -68,7 +72,7 @@ void Tz::HookConfig::Submit()
 			memcpy(_configMemory + (0x14 * i) + (0x02 * z) + 0x04, &_currentEntry[0x02 + z], 0x02);
 
 		for (int z = 0; z < (_currentEntry[0] == 0x01 ? 0x04 : _currentEntry[0]); z++)
-			memcpy(_configMemory + (0x14 * i) + (0x02 * z) + 0x0C, &_currentEntry[0x02 + _currentEntry[0] + z], 0x02);
+			memcpy(_configMemory + (0x14 * i) + (0x02 * z) + 0x0C, &_currentEntry[0x02 + (_currentEntry[0] == 0x01 ? 0x04 : _currentEntry[0]) + z], 0x02);
 	}
 
 	uint8_t _childCount = Entries.size();

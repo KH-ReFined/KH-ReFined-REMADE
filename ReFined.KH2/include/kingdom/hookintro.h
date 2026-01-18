@@ -21,18 +21,18 @@ using namespace std;
 
 namespace Tz
 {
-	class HookConfig
+	class HookIntro
 	{
-		public:
-			static vector<vector<uint16_t>> Entries;
-			static vector<char*> CONFIG_OFFSETS;
+	public:
+		static vector<vector<uint32_t>> Entries;
+		static vector<char*> INTRO_OFFSETS;
 
-			static void Submit();
-			static void Handle();
+		static void Submit();
+		static void Handle();
 
-			static void Remove(int Index);
-			static void Add(int Index, vector<uint16_t> Input);
+		static void Remove(int Index);
+		static void Add(int Index, vector<uint32_t> Input);
 
-			static uint8_t GetValue(uint16_t titleID);
+		static uint8_t GetValue(uint32_t titleID);
 	};
 }

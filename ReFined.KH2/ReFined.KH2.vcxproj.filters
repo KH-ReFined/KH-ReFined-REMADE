@@ -168,9 +168,6 @@
     <ClInclude Include="include\kingdom\world.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
-    <ClInclude Include="include\intro_menu.h">
-      <Filter>Header Files\refined_classes</Filter>
-    </ClInclude>
     <ClInclude Include="include\kingdom\command_draw.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
@@ -234,10 +231,13 @@
     <ClInclude Include="include\kingdom\panacea_alloc.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
-    <ClInclude Include="include\kingdom\config_menu.h">
+    <ClInclude Include="include\kingdom\hookconfig.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
     <ClInclude Include="include\kingdom\region.h">
+      <Filter>Header Files\kingdom_internal</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kingdom\hookintro.h">
       <Filter>Header Files\kingdom_internal</Filter>
     </ClInclude>
   </ItemGroup>
@@ -362,9 +362,6 @@
     <ClCompile Include="src\kingdom\world.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
-    <ClCompile Include="src\intro_menu.cpp">
-      <Filter>Source Files\refined_classes</Filter>
-    </ClCompile>
     <ClCompile Include="src\kingdom\command_draw.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
@@ -428,7 +425,7 @@
     <ClCompile Include="src\kingdom\exp.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
-    <ClCompile Include="src\kingdom\config_menu.cpp">
+    <ClCompile Include="src\kingdom\hookconfig.cpp">
       <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
     <ClCompile Include="src\kingdom\panacea_alloc.cpp">
@@ -439,6 +436,9 @@
     </ClCompile>
     <ClCompile Include="src\dllmain.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kingdom\hookintro.cpp">
+      <Filter>Source Files\kingdom_internal</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
