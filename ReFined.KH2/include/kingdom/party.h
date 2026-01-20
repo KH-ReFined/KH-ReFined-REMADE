@@ -20,7 +20,9 @@ extern "C"
 
 			static char* KeybladePAX;
 
-			// In all honesty, reimplementing this seemed like the far more stable option.
+			using ChgWeapon_t = void(*)(char* task, int part, bool hand_secondary, int item);
+			static ChgWeapon_t ChgWeapon;
+
 			static void ChangeWeapon(int part, bool hand_secondary, int item);
 		};
 	}

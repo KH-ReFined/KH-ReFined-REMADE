@@ -46,6 +46,12 @@ void Tz::HookIntro::Submit()
 {
 	auto _introMemory = YS::PANACEA_ALLOC::Get("INTRO_MEMORY");
 
+	if (!_introMemory)
+	{
+		YS::PANACEA_ALLOC::Allocate("INTRO_MEMORY", 0x300);
+		_introMemory = YS::PANACEA_ALLOC::Get("INTRO_MEMORY");
+	}
+
 	for (int i = 0; i < Entries.size(); i++)
 	{
 		auto _currentEntry = Entries[i];

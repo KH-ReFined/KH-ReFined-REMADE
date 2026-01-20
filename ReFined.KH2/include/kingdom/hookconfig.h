@@ -24,8 +24,8 @@ namespace Tz
 	class HookConfig
 	{
 	public:
-		static vector<vector<uint16_t>> Entries;
 		static vector<char*> CONFIG_OFFSETS;
+		static vector<vector<uint16_t>> Entries;
 
 		static void Submit();
 		static void Handle();
