@@ -66,7 +66,10 @@
 
 #include "ini.h"
 #include <hookintro.h>
+#include <field.h>
 
+
+bool SWAPPED_WEAPONS = true;
 
 using namespace std;
 using namespace discord;
@@ -1000,7 +1003,7 @@ void DISCORD_RPC()
     Discord->RunCallbacks();
 }
 
-void HANDLE_GLOW()
+void HANDLE_SHAKE()
 {
     if (ADJUST_GLOW_ARRAY.size() == 0x00)
     {
@@ -2011,6 +2014,46 @@ extern "C"
         auto _addrGetAPDX = reinterpret_cast<char*>(YS::OBJENTRY::get_apdx);
         auto _addrGetMSET = reinterpret_cast<char*>(YS::OBJENTRY::get_mset);
 
+        // Fixes a crash with switching weapons without a thread present.
+
+        auto _fixWeaponHotswap = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x20\x48\x8B\xD9\x33\xC0\x0F\x1F\x44\x00\x00\x48\x85\xC0\x75\x09\x48\x8B\x05\x00\x00\x00\x00\xEB\x08\x8B\x48\x70\xE8\x00\x00\x00\x00\x48\x85\xC0\x74\x15\x48\x39\x58\x58\x75\xDF\xB9\xFF\xFF\x00\x00\x66\x01\x48\x02\x48\x83\xC4\x20\x5B\xC3\xB9\xFF\xFF\x00\x00\x66\x01\x48\x02\x48\x83\xC4\x20\x5B\xC3", "xxxxxxxxxxxxxxxxxxxxxxxx????xxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+        auto _jumpSpace = _fixWeaponHotswap + 0x294;
+        auto _moduleStart = reinterpret_cast<uint64_t>(moduleInfo.startAddr) - reinterpret_cast<uint64_t>(_jumpSpace) - 0x07;
+
+        vector<uint8_t> _instJumpWorkaround
+        {
+            0xE9, 0x59, 0x02, 0x00, 0x00,
+            0x90, 0x90, 0x90, 0x90, 0x90,
+            0xB9, 0xFF, 0xFF, 0x00, 0x00,
+            0xE9, 0x4A, 0x02, 0x00, 0x00
+        };
+
+        memcpy(_fixWeaponHotswap + 0x36, _instJumpWorkaround.data(), 0x14);
+
+        vector<uint8_t> _instHotpatchWeapon
+        {
+            0x4C, 0x8D, 0x15, 0x00, 0x00, 0x00, 0x00,
+            0x4C, 0x39, 0xD0,
+            0xEB, 0x03,
+            0xC2, 0x00, 0x00,
+            0x7C, 0x04,
+            0x66, 0x01, 0x48, 0x02,
+            0x4D, 0x31, 0xD2,
+            0xEB, 0x8B
+        };
+
+        vector<uint8_t> _instHotpatchCont
+        {
+            0x48, 0x83, 0xC4, 0x20,
+            0x5B, 0xC3
+        };
+
+        memcpy(_instHotpatchWeapon.data() + 0x03, &_moduleStart, 0x04);
+
+        memcpy(_jumpSpace, _instHotpatchWeapon.data(), 0x1A);
+        memcpy(_jumpSpace - 0x5B, _instHotpatchCont.data(), 0x06);
+
         // Redirect MDLX and APDX file construction (within YS::OBJENTRY::GetCacheBuffStatus) to [YS::OBJENTRY::get_mdlx] and [YS::OBJENTRY::get_apdx] instead.
 
         vector<uint8_t> _instructionREPLACE =
@@ -2200,8 +2243,7 @@ extern "C"
 
         // Initialization of all MENU handlers [INTRO, CONFIG, CONTINUE]
 
-        YS::PANACEA_ALLOC::Allocate("CONFIG_MEMORY", 0x200);
-        YS::PANACEA_ALLOC::Allocate("INTRO_MEMORY", 0x300);
+        YS::PANACEA_ALLOC::Allocate("CHGWEAPON_PARAMS", 0x10);
 
         ReFined::Continue::Submit();
 
@@ -2211,11 +2253,6 @@ extern "C"
         // Prevent SOFTRESET from resetting Fade status for a smooth-ass transition.
         
         memcpy(reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED, "\x90\x90\x90\x90\x90", 0x05);
-
-        // Prevent MAGIC clearing since we handle that now, and because it causes a crash.
-        
-        auto _funcMagicClear = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
-        memcpy(_funcMagicClear + 0x18A, "\x90\x90\x90\x90\x90", 0x05);
 
         // I do not remember what this fucking does. But I believe it is important.
 
@@ -2403,49 +2440,56 @@ extern "C"
             *reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0x214) = 0x00;
         }
 
-        // Handle reFined.cfg file.
+        #ifndef BUILD_NMC
+            // Prevent MAGIC clearing since we handle that now, and because it causes a crash.
 
-        wchar_t _configPath[MAX_PATH];
+            auto _funcMagicClear = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
+            memcpy(_funcMagicClear + 0x18A, "\x90\x90\x90\x90\x90", 0x05);
 
-        wcscpy(_configPath, mod_path);
-        wcscat(_configPath, L"\\dll\\reFined.cfg");
+            // Handle reFined.cfg file.
 
-        auto _wideStr = wstring(_configPath);
+            wchar_t _configPath[MAX_PATH];
 
-        mINI::INIFile _configFile(string(_wideStr.begin(), _wideStr.end()));
-        mINI::INIStructure _configStruct;
+            wcscpy(_configPath, mod_path);
+            wcscat(_configPath, L"\\dll\\reFined.cfg");
 
-        _configFile.read(_configStruct);
+            auto _wideStr = wstring(_configPath);
 
-        auto _fetchButtons = _configStruct["General"]["resetCombo"];
+            mINI::INIFile _configFile(string(_wideStr.begin(), _wideStr.end()));
+            mINI::INIStructure _configStruct;
 
-        if (_fetchButtons.find("NONE") == string::npos)
-        {
-            size_t _buttonPos = 0;
-            string _buttonToken;
-            string _tempStr = _fetchButtons;
+            _configFile.read(_configStruct);
 
-            while ((_buttonPos = _tempStr.find(" + ")) != string::npos)
+            auto _fetchButtons = _configStruct["General"]["resetCombo"];
+
+            if (_fetchButtons.find("NONE") == string::npos)
             {
-                _buttonToken = _tempStr.substr(0, _buttonPos);
-                _tempStr.erase(0, _buttonPos + 3);
+                size_t _buttonPos = 0;
+                string _buttonToken;
+                string _tempStr = _fetchButtons;
 
-                transform(_buttonToken.begin(), _buttonToken.end(), _buttonToken.begin(), ::toupper);
+                while ((_buttonPos = _tempStr.find(" + ")) != string::npos)
+                {
+                    _buttonToken = _tempStr.substr(0, _buttonPos);
+                    _tempStr.erase(0, _buttonPos + 3);
 
-                RESET_COMBO |= YS::HARDPAD::BUTTONS_MAP[_buttonToken];
+                    transform(_buttonToken.begin(), _buttonToken.end(), _buttonToken.begin(), ::toupper);
 
-                if (_tempStr.find(" + ") == string::npos)
-                    RESET_COMBO |= YS::HARDPAD::BUTTONS_MAP[_tempStr];
+                    RESET_COMBO |= YS::HARDPAD::BUTTONS_MAP[_buttonToken];
+
+                    if (_tempStr.find(" + ") == string::npos)
+                        RESET_COMBO |= YS::HARDPAD::BUTTONS_MAP[_tempStr];
+                }
             }
-        }
 
-        DISCORD_ENABLED = _configStruct["General"]["discordRPC"] == "true" ? true : false;
+            DISCORD_ENABLED = _configStruct["General"]["discordRPC"] == "true" ? true : false;
 
-        ROOM_AMOUNT = atoi(_configStruct["General"]["saveRoomAmount"].c_str());
-        SAVE_SLOT_OFFSET = atoi(_configStruct["General"]["saveSlot"].c_str());
+            ROOM_AMOUNT = atoi(_configStruct["General"]["saveRoomAmount"].c_str());
+            SAVE_SLOT_OFFSET = atoi(_configStruct["General"]["saveSlot"].c_str());
 
-        if (ROOM_AMOUNT == 0x00)
-            ROOM_AMOUNT = 1;
+            if (ROOM_AMOUNT == 0x00)
+                ROOM_AMOUNT = 1;
+        #endif
     }
 
     __declspec(dllexport) void OnFrame()
@@ -2738,23 +2782,25 @@ extern "C"
             Tz::HookIntro::Handle();
             Tz::HookConfig::Handle();
 
-            REGISTER_MAGIC();
-            REGISTER_ABILITY();
-            SHOW_INFORMATION();
-            PROCESS_DEATH();
             RETRY_BATTLES();
-
             SOFT_RESET();
             HANDLE_MUSIC();
             HANDLE_RESOURCE();
-            ENFORCE_LOCKON();
             DISPLAY_NEXT_EXP();
-            HANDLE_GOA_LAND();
             ENFORCE_FRAMERATE();
-            HANDLE_GLOW();
+            HANDLE_SHAKE();
             ENFORCE_PROMPTS();
             AUTOSAVE();
             FIX_SAVE_POINT();
+
+            #ifndef BUILD_NMC
+            REGISTER_MAGIC();
+            REGISTER_ABILITY();
+            SHOW_INFORMATION();
+            PROCESS_DEATH();            
+            HANDLE_GOA_LAND();
+            ENFORCE_LOCKON();
+            #endif
 
             for (auto _execPair : _execModule)
                 _execPair.second();
