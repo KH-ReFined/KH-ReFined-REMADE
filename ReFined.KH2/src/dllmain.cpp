@@ -2243,7 +2243,7 @@ extern "C"
 
         // Initialization of all MENU handlers [INTRO, CONFIG, CONTINUE]
 
-        YS::PANACEA_ALLOC::Allocate("CHGWEAPON_PARAMS", 0x10);
+        YS::PANACEA_ALLOC::Allocate("CHANGE_WEAPON_QUEUE", 0x100);
 
         ReFined::Continue::Submit();
 

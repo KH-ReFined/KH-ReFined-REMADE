@@ -17,6 +17,8 @@ void YS::PANACEA_ALLOC::Allocate(string Key, size_t Size)
 
     MEMORY_BLOCK[Key] = alloc(_allocInstance, Size);
     VirtualProtect(MEMORY_BLOCK[Key], Size, PAGE_EXECUTE_READWRITE, &lpflOldProtect);
+
+    fill(MEMORY_BLOCK[Key], MEMORY_BLOCK[Key] + Size, 0x00);
 }
 
 void YS::PANACEA_ALLOC::Free(string Key)
