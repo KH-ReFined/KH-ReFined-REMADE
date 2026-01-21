@@ -70,6 +70,7 @@
 
 
 bool SWAPPED_WEAPONS = true;
+int ID_ITERATOR = 0;
 
 using namespace std;
 using namespace discord;

@@ -217,15 +217,18 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				_wpnPart = *reinterpret_cast<uint16_t*>(YS::OBJENTRY::Get(_object) + 0x4E);
 			}
 
-			auto _sizeVSB = YS::FILE::GetSize("se/zz00_keyswitch.win32.scd");
-
-			if (_sizeVSB != 0x00)
+			if (_currentStack[0] == 0x01)
 			{
-				if (!ALLOC_VSB)
-					ALLOC_VSB = (char*)malloc(_sizeVSB);
+				auto _sizeVSB = YS::FILE::GetSize("se/zz00_keyswitch.win32.scd");
 
-				YS::FILE::Read("se/zz00_keyswitch.win32.scd", ALLOC_VSB);
-				YS::SOUND::PlayVSB(ALLOC_VSB, _sizeVSB, 0x3FAC, 0x00);
+				if (_sizeVSB != 0x00)
+				{
+					if (!ALLOC_VSB)
+						ALLOC_VSB = (char*)malloc(_sizeVSB);
+
+					YS::FILE::Read("se/zz00_keyswitch.win32.scd", ALLOC_VSB);
+					YS::SOUND::PlayVSB(ALLOC_VSB, _sizeVSB, 0x3FAC, 0x00);
+				}
 			}
 
 			// Destroy all files with the given priority from the CACHE_BUFF.
@@ -277,13 +280,15 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
 			}
 
-			// Parse the current PAX of the Keyblade we just changed and play the first effect, which should be the appear effect.
-			auto _parsePaxPtr = *reinterpret_cast<char**>(*reinterpret_cast<uint64_t*>(YS::PARTY::KeybladePAX) + (_currentStack[1] ? 0x5B8 : 0x5B0));
-			ryj::PAX::Start(_parsePaxPtr, 0x00, 0x01, 0x00, 0x00);
+			if (_currentStack[0] == 0x01)
+			{
+				// Parse the current PAX of the Keyblade we just changed and play the first effect, which should be the appear effect.
+				auto _parsePaxPtr = *reinterpret_cast<char**>(*reinterpret_cast<uint64_t*>(YS::PARTY::KeybladePAX) + (_currentStack[1] ? 0x5B8 : 0x5B0));
+				ryj::PAX::Start(_parsePaxPtr, 0x00, 0x01, 0x00, 0x00);
+			}
 
 			// The queued request has successfully been processed. Clear it.
 			fill(YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x0C * _queueIterator), YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x0C * _queueIterator) + 0x0C, 0x00);
 		}
-
 	}
 }
