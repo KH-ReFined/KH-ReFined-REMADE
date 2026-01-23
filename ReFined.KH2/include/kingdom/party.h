@@ -5,8 +5,6 @@
 #include <cstdint>
 #include <Windows.h>
 #include "SigScan.h"
-#include "sound.h"
-
 extern "C"
 {
 	namespace YS
@@ -22,7 +20,10 @@ extern "C"
 
 			static char* KeybladePAX;
 
-			static void ChangeWeapon(char* task, int part, bool hand_secondary, int item);
+			using ChgWeapon_t = void(*)(char* task, int part, bool hand_secondary, int item);
+			static ChgWeapon_t ChgWeapon;
+
+			static void ChangeWeapon(int part, bool hand_secondary, int item);
 		};
 	}
 }

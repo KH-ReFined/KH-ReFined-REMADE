@@ -111,30 +111,6 @@ inline vector<char*> MultiSignatureScan(const char* pattern, const char* mask)
     return _returnList;
 }
 
-inline vector<char*> RangedMultiScan(const char* pattern, const char* mask, char* startAddr, size_t length)
-{
-    vector<char*> _returnList;
-    size_t patLen = std::strlen(mask);
-
-    for (const char* addr = startAddr; addr < (startAddr + length) - patLen; ++addr)
-    {
-        size_t i = 0;
-        for (; i < patLen; ++i)
-        {
-            if (mask[i] != '?' && pattern[i] != addr[i])
-                break;
-        }
-
-        if (i == patLen)
-        {
-            _returnList.push_back(const_cast<char*>(addr));
-            continue;
-        }
-    }
-
-    return _returnList;
-}
-
 inline uintptr_t ResolveCallRelative(const void* callInstr)
 {
     const uint8_t* bytes = reinterpret_cast<const uint8_t*>(callInstr);

@@ -15,7 +15,7 @@ extern "C"
 		class DLL_EXPORT MESSAGE
 		{
 		public:
-			using GetData_t = char* (*)(int id);
+			using GetData_t = const char* (*)(int id);
 			using GetSize_t = const size_t(*)(const char* message);
 
 			static GetData_t GetData;

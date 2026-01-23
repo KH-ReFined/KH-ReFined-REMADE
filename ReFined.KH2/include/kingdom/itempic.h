@@ -15,10 +15,8 @@ extern "C"
 			using FreeImageData_t = void(__fastcall*)(char* _imageData);
 			static FreeImageData_t FreeImageData;
 
-			static uint16_t* LoadedId;
-
 			static char* ImageBuff;
-			static uint16_t** ToLoadID;
+			static uint16_t** LoadedId;
 		};
 	}
 }
