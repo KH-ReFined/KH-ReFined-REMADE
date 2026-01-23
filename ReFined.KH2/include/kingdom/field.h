@@ -20,6 +20,8 @@ extern "C"
 
 			using CreateThread_t = void(*)(int id, int priority, TASK_FUNC entryFunc, int stackSize);
 			static CreateThread_t CreateThread;
+
+			static bool TaskExists(uint64_t taskFunction);
 		};
 	}
 }

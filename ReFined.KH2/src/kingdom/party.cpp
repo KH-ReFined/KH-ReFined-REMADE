@@ -124,6 +124,20 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 			// If we have a hit on the party member;
 			if (_charPtr != nullptr)
 			{
+				if (_currentStack[0] == 0x01)
+				{
+					auto _sizeVSB = YS::FILE::GetSize("se/zz00_keyswitch.win32.scd");
+
+					if (_sizeVSB != 0x00)
+					{
+						if (!ALLOC_VSB)
+							ALLOC_VSB = (char*)malloc(_sizeVSB);
+
+						YS::FILE::Read("se/zz00_keyswitch.win32.scd", ALLOC_VSB);
+						YS::SOUND::PlayVSB(ALLOC_VSB, _sizeVSB, 0x3FAC, 0x00);
+					}
+				}
+
 				// Fetch the pointers for the weapon and its function space.
 				auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * _currentStack[1] + 0x0D60);
 				int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
@@ -155,13 +169,10 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				else
 					_wpnBank = 0xFFFF;
 
-				// Force-Destroy the current keyblade.
-
-				*reinterpret_cast<uint64_t*>(_weaponPtr + 0x124) |= 0x700; // Hides the Keyblade.
+				// Prepare the OBJ for destruction.
 				reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x48))(_weaponAddr, _weaponInt); // Compresses the VIF packages(?).
 
 				// This essentially reimplements YS::OBJ::destroy(). Why? Why not.
-
 				if ((*reinterpret_cast<uint64_t*>(_weaponPtr + 0x9B8) & 0x40) == 0x00)
 				{
 					reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x30))(_weaponAddr, _weaponInt);
@@ -217,20 +228,6 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				_wpnPart = *reinterpret_cast<uint16_t*>(YS::OBJENTRY::Get(_object) + 0x4E);
 			}
 
-			if (_currentStack[0] == 0x01)
-			{
-				auto _sizeVSB = YS::FILE::GetSize("se/zz00_keyswitch.win32.scd");
-
-				if (_sizeVSB != 0x00)
-				{
-					if (!ALLOC_VSB)
-						ALLOC_VSB = (char*)malloc(_sizeVSB);
-
-					YS::FILE::Read("se/zz00_keyswitch.win32.scd", ALLOC_VSB);
-					YS::SOUND::PlayVSB(ALLOC_VSB, _sizeVSB, 0x3FAC, 0x00);
-				}
-			}
-
 			// Destroy all files with the given priority from the CACHE_BUFF.
 			YS::CACHE_BUFF::DestroyPriority(_wpnPriority);
 
@@ -243,7 +240,6 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 			YS::CACHE_BUFF::Flush(task);
 
 			// Get the target weapon's objentry and initialize swap.
-
 			auto _wpnEntry = YS::WEAPON_ENTRY::Get(_wpnPart, _currentStack[2]);
 			YS::PARTY::SetWeapon(_charPtr, _wpnEntry, _currentStack[1]);
 

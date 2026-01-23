@@ -68,9 +68,14 @@
 #include <hookintro.h>
 #include <field.h>
 
-
 bool SWAPPED_WEAPONS = true;
 int ID_ITERATOR = 0;
+
+bool COLOR_SWAPPED = false;
+bool IS_KEYBLADE_MENU = false;
+bool KEYBLADE_DEBOUNCE = false;
+
+int TARGET_KEY = 0x00;
 
 using namespace std;
 using namespace discord;
@@ -340,7 +345,7 @@ void ConstructFAC(uint16_t id)
 
 void ConstructITEMPIC(char* buff, uint16_t id)
 {
-    auto _fetchPicturePtr = *YS::ITEMPIC::LoadedId;
+    auto _fetchPicturePtr = *YS::ITEMPIC::ToLoadID;
     auto _fetchPictureID = 0x00;
 
     if (_fetchPicturePtr != nullptr)
@@ -463,7 +468,6 @@ vector<uint16_t> ABILITY_ARRAY;
 char* PICTURE_APPEAR_FUNC = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x30\x48\x63\x41\x34\x48\x8B\xD9\x3B\x41\x30\x0F\x84\x00\x00\x00\x00\x48\x69\xD0\x60\x05\x00\x00\x48\x89\x7C\x24\x48", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx");
 bool IS_PICTURE_EDITED = false;
 
-
 uint32_t POSITIVE_ASPECT_OFFSET = 0x55;
 uint32_t NEGATIVE_ASPECT_OFFSET = 0xFFFFFFAB;
 
@@ -483,8 +487,25 @@ auto SIMPLE_COUNTER_FUNC = MultiSignatureScan("\x41\x8D\x46\xAB\x41\x89\x84\x3F\
 char* CMENU_OFFSET = SignatureScan<char*>("\x48\x8B\xC4\x48\x81\xEC\x88\x00\x00\x00\x48\x89\x58\x18\xBA\x02\x00\x00\x00\x48\x89\x68\xF8\x48\x89\x70\xF0", "xxxxxxxxxxxxxxxxxxxxxxxxxxx");
 char* CMENUINIT_OFFSET = SignatureScan<char*>("\x66\x44\x89\x35\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x44\x88\x35\x00\x00\x00\x00\x0F\x95\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\xC7\x44\x24\x30\x8C\x00\x00\x00", "xxxx????x????xxxxx????xxx????x????xxx????xxxxxxxx");
 
-vector <uint8_t> INST_CAMPBITWISE;
-vector <uint8_t> INST_CAMPINIT;
+char* MENU_2DD_POINTERS = const_cast<char*>(moduleInfo.startAddr) + *reinterpret_cast<uint32_t*>(SignatureScan<char*>("\x40\x53\x48\x81\xEC\xB0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\xA0\x00\x00\x00\x80\x3D", "xxxxxxxxxxxx????xxxxxxxxxxxxx") + 0xC4);
+
+vector<char*> MENU_MAIN_LABEL;
+vector<char*> MENU_INSIDE_LABELS;
+vector<char*> MENU_FORM_LABELS;
+vector<char*> MENU_FORM_TEXTS;
+
+char* MENU_SEQUENCE_ARRAY = SignatureScan<char*>("\xCF\x00\xD1\x00\xD0\x00\xD9\x00\xDB\x00\xDA\x00\xAB\x00\xAD\x00", "xxxxxxxxxxxxxxxx");
+
+char** MENU_ITEMS = ResolveRelativeAddress<char**>("\x40\x53\x55\x56\x57\x41\x54\x41\x56\x41\x57\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x48\x8B\x0D\x00\x00\x00\x00\x4C\x8B\xF8", "xxxxxxxxxxxxxxxx????xxx????xxx", 0x26);
+
+// I do NOT know what there are, and am too lazy to figure out.
+void(*MENU_COMMIT_FIRST)(char*, int, int) = SignatureScan<void(*)(char*, int, int)>("\x40\x53\x56\x57\x41\x54\x41\x56\x48\x83\xEC\x20\x4C\x8D\x71\x04", "xxxxxxxxxxxxxxxx");
+void(*MENU_COMMIT_SECOND)(char*, int, int) = SignatureScan<void(*)(char*, int, int)>("\x40\x53\x55\x56\x57\x41\x55\x41\x56\x41\x57\x48\x83\xEC\x20\x48", "xxxxxxxxxxxxxxxx");
+
+void(*ITEM_COMMIT)() = nullptr;
+
+vector<uint8_t> INST_CAMPBITWISE;
+vector<uint8_t> INST_CAMPINIT;
 
 vector<uint8_t> INST_MAPJUMPTASK;
 vector<uint8_t> INST_CONTINUELOAD;
@@ -2055,6 +2076,30 @@ extern "C"
         memcpy(_jumpSpace, _instHotpatchWeapon.data(), 0x1A);
         memcpy(_jumpSpace - 0x5B, _instHotpatchCont.data(), 0x06);
 
+        // Fixes key-bound PAX effects crashing whilst switching weapons.
+
+        char* _funcCheckWeapon = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x33\xDB\x48\x8B\xF2\x48\x8B\xF9\x48\x39\x99", "xxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+        fill(_funcCheckWeapon + 0x17, _funcCheckWeapon + 0x1D, 0x90);
+        memcpy(_funcCheckWeapon + 0x17, "\xEB\xB8", 0x02);
+
+        vector<uint8_t> _firstPatchPax
+        {
+            0x48, 0x85, 0xC9, // test rcx, rcx
+            0x0F, 0x84, 0x95, 0x00, 0x00, 0x00, // je 0x95
+            0xEB, 0x19 // jmp 0x19
+        };
+
+        memcpy(_funcCheckWeapon - 0x2F, _firstPatchPax.data(), 0x0B);
+
+        vector<uint8_t> _secondPatchPax
+        {
+            0x48, 0x39, 0x99, 0xB8, 0x0A, 0x00, 0x00, // cmp [rcx + 0x0AB8], rbx
+            0xEB, 0x20 // jmp 0x20
+        };
+
+        memcpy(_funcCheckWeapon - 0x0B, _secondPatchPax.data(), 0x09);
+
         // Redirect MDLX and APDX file construction (within YS::OBJENTRY::GetCacheBuffStatus) to [YS::OBJENTRY::get_mdlx] and [YS::OBJENTRY::get_apdx] instead.
 
         vector<uint8_t> _instructionREPLACE =
@@ -2245,6 +2290,9 @@ extern "C"
         // Initialization of all MENU handlers [INTRO, CONFIG, CONTINUE]
 
         YS::PANACEA_ALLOC::Allocate("CHANGE_WEAPON_QUEUE", 0x100);
+
+        YS::PANACEA_ALLOC::Allocate("KEYBLADE_SWITCH", 0x10);
+        YS::PANACEA_ALLOC::Allocate("KEYBLADE_DRIVES", 0x10);
 
         ReFined::Continue::Submit();
 
@@ -2503,6 +2551,36 @@ extern "C"
 
             if (!_fetchFake)
                 return;
+
+            char _filePath[0x24];
+            ConstructMENU(_filePath, const_cast<char*>("camp.2ld"));
+
+            auto _fetchSize = YS::FILE::GetSize(_filePath);
+
+            if (_fetchSize != 0x00)
+            {
+                auto _allocLoad = (char*)malloc(_fetchSize);
+                YS::FILE::Read(_filePath, _allocLoad);
+
+                MENU_MAIN_LABEL = RangedMultiScan("\x00\x40\x50\x80\x00\x40\x50\x80", "xxxxxxxx", _allocLoad, _fetchSize);
+                MENU_INSIDE_LABELS = RangedMultiScan("\x00\x32\x32\x80\x00\x32\x32\x80", "xxxxxxxx", _allocLoad, _fetchSize);
+                MENU_FORM_TEXTS = RangedMultiScan("\x00\x9B\x9B\x80\x00\x9B\x9B\x80", "xxxxxxxx", _allocLoad, _fetchSize);
+                MENU_FORM_LABELS = RangedMultiScan("\x00\x3C\x3C\x50\x00\x3C\x3C\x50", "xxxxxxxx", _allocLoad, _fetchSize);
+
+                for (int i = 0; i < MENU_MAIN_LABEL.size(); i++)
+                    MENU_MAIN_LABEL[i] = reinterpret_cast<char*>(MENU_MAIN_LABEL[i] - _allocLoad);
+
+                for (int i = 0; i < MENU_INSIDE_LABELS.size(); i++)
+                    MENU_INSIDE_LABELS[i] = reinterpret_cast<char*>(MENU_INSIDE_LABELS[i] - _allocLoad);
+
+                for (int i = 0; i < MENU_FORM_LABELS.size(); i++)
+                    MENU_FORM_LABELS[i] = reinterpret_cast<char*>(MENU_FORM_LABELS[i] - _allocLoad);
+
+                for (int i = 0; i < MENU_FORM_TEXTS.size(); i++)
+                    MENU_FORM_TEXTS[i] = reinterpret_cast<char*>(MENU_FORM_TEXTS[i] - _allocLoad);
+
+                free(_allocLoad);
+            }
 
             // If "00shopface.bin" exists, patch all SHOPFACE functions to use the file instead.
             if (YS::FILE::GetSize("00shopface.bin"))
@@ -2811,6 +2889,208 @@ extern "C"
 
             if (!IS_NOASPECT)
                 HANDLE_ASPECT();
+
+            if (!ITEM_COMMIT)
+                ITEM_COMMIT = SignatureScan<void(*)()>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x83\xEC\x40\x45\x32", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+            if (!*YS::TITLE::IsTitle && *YS::PANACEA_ALLOC::Get("KEYBLADE_SWITCH") == 0x00)
+            {
+                for (int i = 0; i < 0x05; i++)
+                {
+                    auto _keybladeValue = *reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0xE400 + (0x02 * i));
+
+                    if (_keybladeValue != 0x00)
+                        memcpy(YS::PANACEA_ALLOC::Get("KEYBLADE_SWITCH") + 0x02 * i, &_keybladeValue, 0x02);
+
+                    else
+                        *reinterpret_cast<uint16_t*>(YS::PANACEA_ALLOC::Get("KEYBLADE_SWITCH") + 0x02 * i) = 0x0310;
+                }
+            }
+
+            auto _fetchCamp = *reinterpret_cast<char**>(MENU_2DD_POINTERS + 0x30);
+            auto _checkMenu = (*YS::MENU::SubMenuType == 0x01 || *YS::MENU::SubMenuType == 0x02);
+
+            if (_fetchCamp && *YS::MENU::IsMenu)
+            {
+                if (_checkMenu && (*YS::HARDPAD::Input & 0x1000) && !COLOR_SWAPPED)
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        auto _fetchKey = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x32BC + 0x38 * (i + 1));
+                        auto _fetchTarget = *reinterpret_cast<uint16_t*>(YS::PANACEA_ALLOC::Get(IS_KEYBLADE_MENU ? "KEYBLADE_DRIVES" : "KEYBLADE_SWITCH") + (0x02 * i));
+
+                        if (*_fetchKey == 0x00)
+                            continue;
+
+                        auto _writeTarget = reinterpret_cast<uint16_t*>(YS::PANACEA_ALLOC::Get(IS_KEYBLADE_MENU ? "KEYBLADE_SWITCH" : "KEYBLADE_DRIVES") + (0x02 * i));
+                        *_writeTarget = *_fetchKey;
+
+                        if (IS_KEYBLADE_MENU)
+                            memcpy(YS::AREA::SaveData + 0xE400 + (i * 0x02), _fetchKey, 0x02);
+
+                        *_fetchKey = _fetchTarget;
+                    }
+
+                    uint64_t _colorMainLabel = !IS_KEYBLADE_MENU ? 0x8000005080000050 : 0x8050400080504000;
+                    uint64_t _colorInsideLabel = !IS_KEYBLADE_MENU ? 0x8000003C8000003C : 0x8032320080323200;
+                    uint64_t _colorFormLabel = !IS_KEYBLADE_MENU ? 0x0000000000000000 : 0x503C3C00503C3C00;
+                    uint64_t _colorFormText = !IS_KEYBLADE_MENU ? 0x0000000000000000 : 0x809B9B00809B9B00;
+
+                    for (char* _fetchMenu : MENU_MAIN_LABEL)
+                        *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchMenu)) = _colorMainLabel;
+
+                    for (auto _fetchRegular : MENU_INSIDE_LABELS)
+                        *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchRegular)) = _colorInsideLabel;
+
+                    for (auto _fetchLabel : MENU_FORM_LABELS)
+                        *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchLabel)) = _colorFormLabel;
+
+                    for (auto _fetchText : MENU_FORM_TEXTS)
+                        *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchText)) = _colorFormText;
+
+                    *reinterpret_cast<uint64_t*>(MENU_SEQUENCE_ARRAY + 0x06) = !IS_KEYBLADE_MENU ? 0xAB00D000D100CF : 0xAB00DA00DB00D9;
+                    *reinterpret_cast<uint64_t*>(MENU_SEQUENCE_ARRAY + 0x36) = !IS_KEYBLADE_MENU ? 0xB000D600D700D5 : 0xB000E000E100DF;
+
+                    COLOR_SWAPPED = true;
+                    IS_KEYBLADE_MENU = !IS_KEYBLADE_MENU;
+
+                    MENU_COMMIT_FIRST(*MENU_ITEMS, 0x05, 0x00);
+                    MENU_COMMIT_SECOND(*MENU_ITEMS, 0x00, 0x00);
+
+                    if (*YS::MENU::SubMenuType == 0x02)
+                    {
+                        auto _fetchSelect = *reinterpret_cast<uint8_t**>(YS::MENU::pint_suboptionselect);
+                        auto _calculateForms = YS::ITEM::GetNumBackyard(0x001A) + YS::ITEM::GetNumBackyard(0x001D) + YS::ITEM::GetNumBackyard(0x001F);
+
+                        if (_fetchSelect && *_fetchSelect != 0x00 && *_fetchSelect <= _calculateForms)
+                            ITEM_COMMIT();
+                    }
+
+                    YS::SOUND::PlaySFX(0x02);
+                }
+
+                else if (!(*YS::HARDPAD::Input & 0x1000) && COLOR_SWAPPED)
+                    COLOR_SWAPPED = false;
+
+                if (*YS::MENU::SubMenuType == 0x02)
+                {
+                    *YS::MESSAGE::GetData(0x5761) = 0x00;
+
+                    auto _fetchSelect = *reinterpret_cast<uint8_t**>(YS::MENU::pint_suboptionselect);
+                    
+                    if (_fetchSelect)
+                    {
+                        auto _calculateForms = YS::ITEM::GetNumBackyard(0x001A) + YS::ITEM::GetNumBackyard(0x001D) + YS::ITEM::GetNumBackyard(0x001F);
+
+                        if ((*_fetchSelect <= _calculateForms && *YS::ITEMPIC::LoadedId == 425) || *_fetchSelect == 0x00 || !IS_KEYBLADE_MENU)
+                            *(YS::AREA::SaveData + 0x36BA) = 0x00;
+
+                        else
+                            *(YS::AREA::SaveData + 0x36BA) = 0x01;
+                    }
+                }
+
+                else
+                    *YS::MESSAGE::GetData(0x5761) = 0x03;
+            }
+
+            else if (IS_KEYBLADE_MENU && !*YS::MENU::IsMenu)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    auto _fetchKey = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x32BC + 0x38 * (i + 1));
+                    auto _fetchTarget = *reinterpret_cast<uint16_t*>(YS::PANACEA_ALLOC::Get("KEYBLADE_DRIVES") + (0x02 * i));
+
+                    if (*_fetchKey == 0x00)
+                        continue;
+
+                    auto _writeTarget = reinterpret_cast<uint16_t*>(YS::PANACEA_ALLOC::Get("KEYBLADE_SWITCH") + (0x02 * i));
+
+                    *_writeTarget = *_fetchKey;
+                    memcpy(YS::AREA::SaveData + 0xE400 + (i * 0x02), _fetchKey, 0x02);
+
+                    *_fetchKey = _fetchTarget;
+
+                    if (_fetchCamp)
+                    {
+                        for (char* _fetchMenu : MENU_MAIN_LABEL)
+                            *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchMenu)) = 0x8050400080504000;
+
+                        for (auto _fetchRegular : MENU_INSIDE_LABELS)
+                            *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchRegular)) = 0x8032320080323200;
+
+                        for (auto _fetchLabel : MENU_FORM_LABELS)
+                            *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchLabel)) = 0x503C3C00503C3C00;
+
+                        for (auto _fetchText : MENU_FORM_TEXTS)
+                            *reinterpret_cast<uint64_t*>(_fetchCamp + reinterpret_cast<int>(_fetchText)) = 0x809B9B00809B9B00;
+
+                        *reinterpret_cast<uint64_t*>(MENU_SEQUENCE_ARRAY + 0x06) = 0xAB00DA00DB00D9;
+                        *reinterpret_cast<uint64_t*>(MENU_SEQUENCE_ARRAY + 0x36) = 0xB000E000E100DF;
+                    }
+
+                    COLOR_SWAPPED = false;
+                    IS_KEYBLADE_MENU = false;
+                }
+            }
+
+            if (!*YS::TITLE::IsTitle && !*YS::MENU::IsMenu && *YS::AREA::IsInMap)
+            {
+                if ((*YS::HARDPAD::Input & 0x0480) == 0x0480 && !KEYBLADE_DEBOUNCE)
+                {
+                    uint16_t* _fetchKeyblade = nullptr;
+                    uint16_t* _currentKeyblade = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x24F0);
+
+                    int _keyIterator = 0x00;
+
+                    while (true)
+                    {
+                        _fetchKeyblade = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0xE400 + (0x02 * (TARGET_KEY + _keyIterator)));
+
+                        if (*_fetchKeyblade == 0x0000 || *_fetchKeyblade == 0x0310)
+                        {
+                            if (_keyIterator >= 0x06)
+                            {
+                                if (TARGET_KEY != 0x00)
+                                {
+                                    TARGET_KEY = 0x00;
+                                    _keyIterator = 0x00;
+
+                                    continue;
+                                }
+
+                                else
+                                    goto END_KEYBLADE;
+
+                            }
+
+                            _keyIterator++;
+                            continue;
+                        }
+
+                        auto _switchKey = *_fetchKeyblade;
+                        auto _actualKey = *_currentKeyblade;
+
+                        TARGET_KEY += _keyIterator;
+
+                        memcpy(YS::AREA::SaveData + 0xE400 + 0x02 * TARGET_KEY, &_actualKey, 0x02);
+                        memcpy(YS::PANACEA_ALLOC::Get("KEYBLADE_SWITCH") + 0x02 * TARGET_KEY, &_actualKey, 0x02);
+
+                        *_currentKeyblade = _switchKey;
+
+                        TARGET_KEY++;
+                        break;
+                    }
+
+                    YS::PARTY::ChangeWeapon(nullptr, 0x01, false, *_currentKeyblade);
+
+                END_KEYBLADE:
+                    KEYBLADE_DEBOUNCE = true;
+                }
+
+                else if ((*YS::HARDPAD::Input & 0x0480) != 0x0480 && KEYBLADE_DEBOUNCE)
+                    KEYBLADE_DEBOUNCE = false;
+            }
         }
     }
 }
