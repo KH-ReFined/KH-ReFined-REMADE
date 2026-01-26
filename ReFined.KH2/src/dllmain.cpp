@@ -67,10 +67,13 @@
 #include "ini.h"
 #include <hookintro.h>
 #include <field.h>
+#include <sheet.h>
 
+bool COLOR_SWAPPED = false;
+bool IS_KEYBLADE_MENU = false;
+bool KEYBLADE_DEBOUNCE = false;
 
-bool SWAPPED_WEAPONS = true;
-int ID_ITERATOR = 0;
+int TARGET_KEY = 0x00;
 
 using namespace std;
 using namespace discord;
@@ -340,7 +343,7 @@ void ConstructFAC(uint16_t id)
 
 void ConstructITEMPIC(char* buff, uint16_t id)
 {
-    auto _fetchPicturePtr = *YS::ITEMPIC::LoadedId;
+    auto _fetchPicturePtr = *YS::ITEMPIC::ToLoadID;
     auto _fetchPictureID = 0x00;
 
     if (_fetchPicturePtr != nullptr)
@@ -463,7 +466,6 @@ vector<uint16_t> ABILITY_ARRAY;
 char* PICTURE_APPEAR_FUNC = SignatureScan<char*>("\x40\x53\x48\x83\xEC\x30\x48\x63\x41\x34\x48\x8B\xD9\x3B\x41\x30\x0F\x84\x00\x00\x00\x00\x48\x69\xD0\x60\x05\x00\x00\x48\x89\x7C\x24\x48", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx");
 bool IS_PICTURE_EDITED = false;
 
-
 uint32_t POSITIVE_ASPECT_OFFSET = 0x55;
 uint32_t NEGATIVE_ASPECT_OFFSET = 0xFFFFFFAB;
 
@@ -483,8 +485,8 @@ auto SIMPLE_COUNTER_FUNC = MultiSignatureScan("\x41\x8D\x46\xAB\x41\x89\x84\x3F\
 char* CMENU_OFFSET = SignatureScan<char*>("\x48\x8B\xC4\x48\x81\xEC\x88\x00\x00\x00\x48\x89\x58\x18\xBA\x02\x00\x00\x00\x48\x89\x68\xF8\x48\x89\x70\xF0", "xxxxxxxxxxxxxxxxxxxxxxxxxxx");
 char* CMENUINIT_OFFSET = SignatureScan<char*>("\x66\x44\x89\x35\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x84\xC0\x44\x88\x35\x00\x00\x00\x00\x0F\x95\x05\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x4C\x8D\x05\x00\x00\x00\x00\xC7\x44\x24\x30\x8C\x00\x00\x00", "xxxx????x????xxxxx????xxx????x????xxx????xxxxxxxx");
 
-vector <uint8_t> INST_CAMPBITWISE;
-vector <uint8_t> INST_CAMPINIT;
+vector<uint8_t> INST_CAMPBITWISE;
+vector<uint8_t> INST_CAMPINIT;
 
 vector<uint8_t> INST_MAPJUMPTASK;
 vector<uint8_t> INST_CONTINUELOAD;
@@ -1526,7 +1528,7 @@ void REGISTER_ABILITY()
         if (_fetchMovement)
         {
             // Refresh all of Sora's stats, which in turn, will commit all movement changes.
-            YS::SORA::RefreshAbilities(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308 + 0x1D0);
+            YS::SHEET::Load(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308, nullptr);
         }
 
         // Copy over the current ability list to the denotation array.
@@ -2055,6 +2057,30 @@ extern "C"
         memcpy(_jumpSpace, _instHotpatchWeapon.data(), 0x1A);
         memcpy(_jumpSpace - 0x5B, _instHotpatchCont.data(), 0x06);
 
+        // Fixes key-bound PAX effects crashing whilst switching weapons.
+
+        char* _funcCheckWeapon = SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x20\x33\xDB\x48\x8B\xF2\x48\x8B\xF9\x48\x39\x99", "xxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+        fill(_funcCheckWeapon + 0x17, _funcCheckWeapon + 0x1D, 0x90);
+        memcpy(_funcCheckWeapon + 0x17, "\xEB\xB8", 0x02);
+
+        vector<uint8_t> _firstPatchPax
+        {
+            0x48, 0x85, 0xC9, // test rcx, rcx
+            0x0F, 0x84, 0x95, 0x00, 0x00, 0x00, // je 0x95
+            0xEB, 0x19 // jmp 0x19
+        };
+
+        memcpy(_funcCheckWeapon - 0x2F, _firstPatchPax.data(), 0x0B);
+
+        vector<uint8_t> _secondPatchPax
+        {
+            0x48, 0x39, 0x99, 0xB8, 0x0A, 0x00, 0x00, // cmp [rcx + 0x0AB8], rbx
+            0xEB, 0x20 // jmp 0x20
+        };
+
+        memcpy(_funcCheckWeapon - 0x0B, _secondPatchPax.data(), 0x09);
+
         // Redirect MDLX and APDX file construction (within YS::OBJENTRY::GetCacheBuffStatus) to [YS::OBJENTRY::get_mdlx] and [YS::OBJENTRY::get_apdx] instead.
 
         vector<uint8_t> _instructionREPLACE =
@@ -2244,7 +2270,7 @@ extern "C"
 
         // Initialization of all MENU handlers [INTRO, CONFIG, CONTINUE]
 
-        YS::PANACEA_ALLOC::Allocate("CHANGE_WEAPON_QUEUE", 0x100);
+        YS::PANACEA_ALLOC::Allocate("CHANGE_WEAPON_QUEUE", 0x140);
 
         ReFined::Continue::Submit();
 
@@ -2765,7 +2791,14 @@ extern "C"
 
             // This is an edge-case handler just in case someone don't wanna use shortcut sets.
 
-            if (!FindModule("ModuleRF-ShortcutSets.dll"))
+            _modulePath[MAX_PATH];
+
+            wcscpy(_modulePath, MOD_PATH);
+            wcscat(_modulePath, L"\\dll\\modules\\ModuleRF-ShortcutSets.dll");
+
+            _foundFileHandle = FindFirstFileW(_modulePath, &_foundFile);
+
+            if (_foundFileHandle == INVALID_HANDLE_VALUE)
             {
                 auto _currentTextPtr = YS::MESSAGE::GetData(0x051F);
 
@@ -2798,7 +2831,7 @@ extern "C"
             REGISTER_MAGIC();
             REGISTER_ABILITY();
             SHOW_INFORMATION();
-            PROCESS_DEATH();            
+            PROCESS_DEATH();
             HANDLE_GOA_LAND();
             ENFORCE_LOCKON();
             #endif

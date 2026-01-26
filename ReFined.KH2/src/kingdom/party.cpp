@@ -8,6 +8,7 @@
 #include "weapon.h"
 #include "objentry.h"
 #include "panacea_alloc.h"
+#include "sheet.h"
 #include "cache_buff.h"
 #include "file.h"
 #include "pax.h"
@@ -17,8 +18,10 @@
 
 #include <thread>
 #include <cassert>
+#include <member_table.h>
 
 bool THREAD_RUNNING = false;
+uint8_t CHECK_VSB_THROUGHPUT = 0x00;
 
 YS::PARTY::SetWeapon_t YS::PARTY::SetWeapon = SignatureScan<YS::PARTY::SetWeapon_t>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x30\x8B\x81\xC8\x06\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 YS::PARTY::ExecuteCommand_t YS::PARTY::ExecuteCommand = SignatureScan<YS::PARTY::ExecuteCommand_t>("\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x30\x81\xA1\x24\x01\x00\x00", "xxxxxxxxxxxxxxxx");
@@ -26,10 +29,12 @@ YS::PARTY::ExecuteCommand_t YS::PARTY::ExecuteCommand = SignatureScan<YS::PARTY:
 char* YS::PARTY::KeybladePAX = ResolveRelativeAddress<char*>("\x48\x8B\xD1\x4C\x8D\x05\x00\x00\x00\x00\x4C\x8D\x0D\x00\x00\x00\x00\x49\x8B\x00\x48\x85\xC0\x74\x18\x0F\x1F\x80\x00\x00\x00\x00\x48\x39\x10\x74\x1B\x48\x8B\x48\x20\x48\x8B\xC1\x48\x85\xC9", "xxxxxx????xxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", 0x10A);
 char* ALLOC_VSB = nullptr;
 
+char* ACTIVE_VOICE_COUNT = ResolveRelativeAddress<char*>("\x40\x56\x57\x41\x56\x48\x83\xEC\x40\x48\xC7\x44\x24\x30\xFE\xFF\xFF\xFF\x48\x89\x5C\x24\x60", "xxxxxxxxxxxxxxxxxxxxxxx", 0x171);
+
 // This function is weird!
 // I basically remade this function here to alleviate some crashes, as well as to provide some fail-safes and extra functionality!
 // I hope this does not break.
-void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item)
+void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item, bool playPax)
 {
 	// If the function was NOT called by the task manager. This is to ensure that it executes the queue system.
 	if (task == nullptr)
@@ -48,16 +53,16 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				return;
 
 			// Push all arguments to a vector.
-			vector<int> _argArray{ part, hand_secondary, item };
+			vector<int> _argArray{ part, hand_secondary, item, playPax };
 			
 			// Fetch the pointer to the first argument within the queue.
-			auto _partPtr = YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (i * 0x0C);
+			auto _partPtr = YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (i * 0x10);
 
 			// If it is empty (PART argument CANNOT be 0x00):
 			if (*_partPtr == 0x00)
 			{
 				// Copy the arguments to the queue in the appropriate place.
-				memcpy(YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (i * 0x0C), _argArray.data(), 0x0C);
+				memcpy(YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (i * 0x10), _argArray.data(), 0x10);
 				break;
 			}
 		}
@@ -74,15 +79,15 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 		for (int _queueIterator = 0x00; _queueIterator < 0x14; _queueIterator++)
 		{
 			// Fetch the first element of the element within the queue.
-			auto _partPtr = YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x0C * _queueIterator);
+			auto _partPtr = YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x10 * _queueIterator);
 
 			// If it is empty, carry on.
 			if (*_partPtr == 0x00)
 				continue;
 
 			// Copy the arguments to the current stack to be processed.
-			vector<int> _currentStack(0x03);
-			memcpy(_currentStack.data(), YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x0C * _queueIterator), 0x0C);
+			vector<int> _currentStack(0x04);
+			memcpy(_currentStack.data(), YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x10 * _queueIterator), 0x10);
 
 			bool _wpnParsed = false;
 
@@ -155,13 +160,10 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				else
 					_wpnBank = 0xFFFF;
 
-				// Force-Destroy the current keyblade.
-
-				*reinterpret_cast<uint64_t*>(_weaponPtr + 0x124) |= 0x700; // Hides the Keyblade.
+				// Prepare the OBJ for destruction.
 				reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x48))(_weaponAddr, _weaponInt); // Compresses the VIF packages(?).
 
 				// This essentially reimplements YS::OBJ::destroy(). Why? Why not.
-
 				if ((*reinterpret_cast<uint64_t*>(_weaponPtr + 0x9B8) & 0x40) == 0x00)
 				{
 					reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x30))(_weaponAddr, _weaponInt);
@@ -217,20 +219,6 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				_wpnPart = *reinterpret_cast<uint16_t*>(YS::OBJENTRY::Get(_object) + 0x4E);
 			}
 
-			if (_currentStack[0] == 0x01)
-			{
-				auto _sizeVSB = YS::FILE::GetSize("se/zz00_keyswitch.win32.scd");
-
-				if (_sizeVSB != 0x00)
-				{
-					if (!ALLOC_VSB)
-						ALLOC_VSB = (char*)malloc(_sizeVSB);
-
-					YS::FILE::Read("se/zz00_keyswitch.win32.scd", ALLOC_VSB);
-					YS::SOUND::PlayVSB(ALLOC_VSB, _sizeVSB, 0x3FAC, 0x00);
-				}
-			}
-
 			// Destroy all files with the given priority from the CACHE_BUFF.
 			YS::CACHE_BUFF::DestroyPriority(_wpnPriority);
 
@@ -242,8 +230,29 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 			YS::OBJENTRY::ReadRequestWeapon(_wpnPart, _currentStack[1], _fetchWeaponID, _wpnPriority, _wpnBank);
 			YS::CACHE_BUFF::Flush(task);
 
-			// Get the target weapon's objentry and initialize swap.
+			if (!*YS::AREA::IsInMap)
+				return;
 
+			if (!_wpnHide && _currentStack[3])
+			{
+				auto _sizeVSB = YS::FILE::GetSize("se/zz00_keyswitch.win32.scd");
+
+				if (_sizeVSB != 0x00)
+				{
+					if (!ALLOC_VSB)
+					{
+						ALLOC_VSB = (char*)malloc(_sizeVSB);
+						YS::FILE::Read("se/zz00_keyswitch.win32.scd", ALLOC_VSB);
+					}
+
+					if (*ACTIVE_VOICE_COUNT == 0x0F)
+						YS::SOUND::StreamAllStop(true);
+
+					YS::SOUND::PlayVSB(ALLOC_VSB, _sizeVSB, 0x3FAC, 0x00);
+				}
+			}
+
+			// Get the target weapon's objentry and initialize swap.
 			auto _wpnEntry = YS::WEAPON_ENTRY::Get(_wpnPart, _currentStack[2]);
 			YS::PARTY::SetWeapon(_charPtr, _wpnEntry, _currentStack[1]);
 
@@ -251,6 +260,9 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 
 			auto _weaponPtr = *reinterpret_cast<char**>(_charPtr + 0x08 * _currentStack[1] + 0x0D60);
 			int* _weaponInt = reinterpret_cast<int*>(_weaponPtr);
+
+			if (_weaponInt == nullptr)
+				continue;
 
 			uint64_t _weaponAddr = PC::CONVERTER::INT_TO_LONG_ADDRESS(*_weaponInt);
 			uint64_t* _weaponAddrPtr = reinterpret_cast<uint64_t*>(_weaponAddr);
@@ -280,15 +292,22 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 				YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
 			}
 
-			if (_currentStack[0] == 0x01)
+			if (_currentStack[3])
 			{
-				// Parse the current PAX of the Keyblade we just changed and play the first effect, which should be the appear effect.
-				auto _parsePaxPtr = *reinterpret_cast<char**>(*reinterpret_cast<uint64_t*>(YS::PARTY::KeybladePAX) + (_currentStack[1] ? 0x5B8 : 0x5B0));
+				auto _parsePaxPtr = *reinterpret_cast<char**>(ryj::PAX::PaxList) - 0x80;
 				ryj::PAX::Start(_parsePaxPtr, 0x00, 0x01, 0x00, 0x00);
 			}
 
+			// I do not know how to execute this for others, so it is for Sora only at this moment.
+
+			if (_currentStack[0] == 0x01)
+			{
+				YS::SHEET::Save(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308);
+				YS::SHEET::Load(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308, nullptr);
+			}
+
 			// The queued request has successfully been processed. Clear it.
-			fill(YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x0C * _queueIterator), YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x0C * _queueIterator) + 0x0C, 0x00);
+			fill(YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x10 * _queueIterator), YS::PANACEA_ALLOC::Get("CHANGE_WEAPON_QUEUE") + (0x10 * _queueIterator) + 0x10, 0x00);
 		}
 	}
 }
