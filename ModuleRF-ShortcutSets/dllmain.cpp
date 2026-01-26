@@ -126,7 +126,7 @@ extern "C"
 		using UpdateListShortcut_t = void(*)(uint32_t);
 
 		PlaySFX_t _playSFX = *(PlaySFX_t*)GetProcAddress(MAIN_HANDLE, "?PlaySFX@SOUND@YS@@2P6AXI@ZEA");
-		GetData_t _getData = *(GetData_t*)GetProcAddress(MAIN_HANDLE, "?GetData@MESSAGE@YS@@2P6APEBDH@ZEA");
+		GetData_t _getData = *(GetData_t*)GetProcAddress(MAIN_HANDLE, "?GetData@MESSAGE@YS@@2P6APEADH@ZEA");
 		GetSize_t _getSize = *(GetSize_t*)GetProcAddress(MAIN_HANDLE, "?GetSize@MESSAGE@YS@@2P6A?B_KPEBD@ZEA");
 		UpdateListShortcut_t _updateListShortcut = *(UpdateListShortcut_t*)GetProcAddress(MAIN_HANDLE, "?UpdateListShortcut@MENU@YS@@2P6AXI@ZEA");
 
@@ -504,6 +504,7 @@ extern "C"
 						// If we have the first option selected;
 						if (*_subOptionSelect == 0x00)
 						{
+							/*
 							// If TRIANGLE input received:
 							if ((*_hardpadInput & 0x1000) == 0x1000)
 							{
@@ -530,23 +531,25 @@ extern "C"
 								// Reset the input.
 								*_hardpadInput = 0x00;
 							}
+							*/
 
 							// If the input isn't TRIANGLE;
-							else
+							// else
+							// {
+							// }
+
+							// Fetch the flow direction.
+							auto _flowDirection = (*_hardpadInput & 0x0400) == 0x0400 ? -1 : ((*_hardpadInput & 0x0800) == 0x0800 ? 1 : 0);
+
+							// If the direction isn't neutral;
+							if (_flowDirection != 0x00)
 							{
-								// Fetch the flow direction.
-								auto _flowDirection = (*_hardpadInput & 0x0400) == 0x0400 ? -1 : ((*_hardpadInput & 0x0800) == 0x0800 ? 1 : 0);
+								// Play the switch SFX.
+								_playSFX(0x02);
 
-								// If the direction isn't neutral;
-								if (_flowDirection != 0x00)
-								{
-									// Play the switch SFX.
-									_playSFX(0x02);
-
-									// Flow the shortcut sets in the flow direction.
-									CURRENT_SHORTCUT_SET += _flowDirection;
-									DEBOUNCE_SHORTCUT = true;
-								}
+								// Flow the shortcut sets in the flow direction.
+								CURRENT_SHORTCUT_SET += _flowDirection;
+								DEBOUNCE_SHORTCUT = true;
 							}
 						}
 					}
