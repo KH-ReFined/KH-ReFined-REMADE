@@ -1081,6 +1081,11 @@ void AUTOSAVE()
         }
     }
 
+    auto _fetchTutorial = reinterpret_cast<uint32_t*>(YS::AREA::SaveData + 0x4270);
+
+    if ((*_fetchTutorial & 0x0600) != 0x0600)
+        *_fetchTutorial |= 0x600;
+
     auto _commandPointer = *reinterpret_cast<const char**>(YS::COMMAND_DRAW::pint_commanddraw);
     const char* _gaugeTypePointer = CalculatePointer(dk::GAUGE::pint_playergauge, { 0x88 });
     const char* _mainPointer = *reinterpret_cast<const char**>(YS::EVENT::pint_eventinfo);
@@ -1528,6 +1533,7 @@ void REGISTER_ABILITY()
         if (_fetchMovement)
         {
             // Refresh all of Sora's stats, which in turn, will commit all movement changes.
+            YS::SHEET::Save(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308);
             YS::SHEET::Load(YS::MEMBER_TABLE::MemberStatsAnchor + 0xC308, nullptr);
         }
 
@@ -1759,9 +1765,10 @@ void HANDLE_ASPECT()
         {
             vector<char*> _fetchMission =
             {
+                YS::CACHE_BUFF::SearchByName("obj/B_EX150.mdlx", -1),
+                YS::CACHE_BUFF::SearchByName("obj/B_EX150_LV99.mdlx", -1),
+                YS::CACHE_BUFF::SearchByName("obj/N_CM020_BTL.mdlx", -1),
                 YS::CACHE_BUFF::SearchByName("msn/us/EH26_MS108.bar", -1),
-                YS::CACHE_BUFF::SearchByName("msn/us/EH14_MS103.bar", -1),
-                YS::CACHE_BUFF::SearchByName("msn/us/HB33_FM_LEX.bar", -1)
             };
 
             bool _isFetched = any_of(_fetchMission.begin(), _fetchMission.end(), [](char* x) {
@@ -1776,12 +1783,12 @@ void HANDLE_ASPECT()
                 memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x21, &_positiveDefault, 0x04);
                 memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x29, &_negativeDefault, 0x04);
             }
-        }
 
-        else if (_commandPointer != 0x00 && _eventPointer == 0x00 && *YS::AREA::IsInMap)
-        {
-            memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x21, &POSITIVE_ASPECT_OFFSET, 0x04);
-            memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x29, &NEGATIVE_ASPECT_OFFSET, 0x04);
+            else
+            {
+                memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x21, &POSITIVE_ASPECT_OFFSET, 0x04);
+                memcpy(YS::PANACEA_ALLOC::Get("GAUGE_ASPECT_OVERRIDE") + 0x29, &NEGATIVE_ASPECT_OFFSET, 0x04);
+            }
         }
     }
 }
@@ -1983,10 +1990,37 @@ extern "C"
 {
     __declspec(dllexport) void OnInit(wchar_t* mod_path)
     {
-        MOD_PATH = mod_path;
-
         // Determine if the MOD is running on STEAM or EPIC.
         IS_STEAM = FindModule("steam_api64.dll");
+
+        // Nullify all SaveID checks according to the platform in use.
+
+        auto _saveCheckFunction = IS_STEAM ? SignatureScan<char*>("\x40\x55\x56\x57\x48\x81\xEC\xA0\x00\x00\x00\x48\xC7\x44\x24\x38\xFE\xFF\xFF\xFF\x48\x89\x9C\x24\xD0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\x90\x00\x00\x00\x8B\xF1\x89\x0D\x00\x00\x00\x00\x89\x15\x00\x00\x00\x00\x33\xED\x8D\x5D\x01\x48\x39\x2D\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\xB9\x78\x01\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x44\x24\x30\x48\x85\xC0\x74\x1D", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxx????xx????xxxxxxxx????xx????xxxxxx????xxxxxxxxxx")
+            : SignatureScan<char*>("\x40\x57\x48\x83\xEC\x50\x48\xC7\x44\x24\x30\xFE\xFF\xFF\xFF\x48\x89\x5C\x24\x70\x48\x89\x74\x24\x78\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x48\x8B\xF9\x89\x0D\x00\x00\x00\x00\x89\x15\x00\x00\x00\x00\x33\xF6\x48\x39\x35\x00\x00\x00\x00\x0F\x85\x3D\x01\x00\x00\xB9\x78\x01\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x44\x24\x38\x48\x85\xC0\x74\x1D\x45\x33\xC9\x44\x8B\x05", "xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx????xx????xxxxx????xxxxxxxxxxxx????xxxxxxxxxxxxxxxx");
+
+        memcpy(_saveCheckFunction + (IS_STEAM ? 0x189 : 0x138), "\x90\x90\x90\x90\x90", 0x05);
+        memcpy(_saveCheckFunction + (IS_STEAM ? 0x196 : 0x145), "\x90\x90", 0x02);
+
+        memcpy(_saveCheckFunction + (IS_STEAM ? 0x1A1 : 0x150), "\xEB", 0x01);
+
+        // Prevent SOFTRESET from resetting Fade status for a smooth-ass transition.
+
+        memcpy(reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED, "\x90\x90\x90\x90\x90", 0x05);
+
+        // I do not remember what this fucking does. But I believe it is important.
+
+        auto _fetchAdjustment = SignatureScan<char*>("\x48\x83\xEC\x28\x0F\x10\x41\x48\x4C\x8B\xC9\x4C\x8B\xD2\xF3\x0F\x10\x25\x00\x00\x00\x00\x0F\x57\xED\x0F\x11\x02\x41\x0F\x10\x00\x49\x8B\x41\x40", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxx");
+
+        memcpy(_fetchAdjustment + 0xF6, "\x90\x90\x90\x90\x90\x90", 0x06);
+        memcpy(_fetchAdjustment + 0x101, "\x90\x90\x90\x90\x90\x90", 0x06);
+
+        #ifndef BUILD_ARCHIPELAGO_LITE
+        Tz::HookIntro::Submit();
+        Tz::HookConfig::Submit();
+        #endif
+
+        #if !defined(BUILD_ARCHIPELAGO) && !defined(BUILD_ARCHIPELAGO_LITE)
+        MOD_PATH = mod_path;
 
         // Fetch the prompt mode byte according to the game version.
         PROMPT_MODE = ResolveRelativeAddress<bool*>("\x40\x57\x48\x83\xEC\x20\x4C\x8B\x0D\x00\x00\x00\x00\x33\xD2\x4D\x85\xC9\x49\x8D\x81\xA0\x12\x00\x00\x48\x0F\x45\xD0\x4D\x8D\x81\x3C\x02\x00\x00\x48\x85\xD2\x0F\x84\x2B\x01\x00\x00\x33\xC0\x4D\x85\xC9\x49\x0F\x45\xC0\x48\x85\xC0\x74\x16\x48\x63\x82\x00\x02\x00\x00\x48\xC1\xE0\x08\x80\x7C\x10\x3B\x00\x0F\x85\x00\x00\x00\x00\x48\x85\xD2\x0F\x84\xFE\x00\x00\x00\x33\xC0\x4D\x85\xC9\x49\x0F\x45\xC0\x48\x85\xC0\x74\x16", "xxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxx", IS_STEAM ? 0x969 : 0x959);
@@ -2002,16 +2036,6 @@ extern "C"
 
         if (IS_FASTBOOT)
             memcpy(YS::TITLE::Title2LD, "title_fast.2ld", 0x0E);
-
-        // Nullify all SaveID checks according to the platform in use.
-
-        auto _saveCheckFunction = IS_STEAM ? SignatureScan<char*>("\x40\x55\x56\x57\x48\x81\xEC\xA0\x00\x00\x00\x48\xC7\x44\x24\x38\xFE\xFF\xFF\xFF\x48\x89\x9C\x24\xD0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\x90\x00\x00\x00\x8B\xF1\x89\x0D\x00\x00\x00\x00\x89\x15\x00\x00\x00\x00\x33\xED\x8D\x5D\x01\x48\x39\x2D\x00\x00\x00\x00\x0F\x85\x00\x00\x00\x00\xB9\x78\x01\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x44\x24\x30\x48\x85\xC0\x74\x1D", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxx????xx????xxxxxxxx????xx????xxxxxx????xxxxxxxxxx")
-                                            : SignatureScan<char*>("\x40\x57\x48\x83\xEC\x50\x48\xC7\x44\x24\x30\xFE\xFF\xFF\xFF\x48\x89\x5C\x24\x70\x48\x89\x74\x24\x78\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x44\x24\x48\x8B\xF9\x89\x0D\x00\x00\x00\x00\x89\x15\x00\x00\x00\x00\x33\xF6\x48\x39\x35\x00\x00\x00\x00\x0F\x85\x3D\x01\x00\x00\xB9\x78\x01\x00\x00\xE8\x00\x00\x00\x00\x48\x89\x44\x24\x38\x48\x85\xC0\x74\x1D\x45\x33\xC9\x44\x8B\x05", "xxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxx????xx????xxxxx????xxxxxxxxxxxx????xxxxxxxxxxxxxxxx");
-
-        memcpy(_saveCheckFunction + (IS_STEAM ? 0x189 : 0x138), "\x90\x90\x90\x90\x90", 0x05);
-        memcpy(_saveCheckFunction + (IS_STEAM ? 0x196 : 0x145), "\x90\x90", 0x02);
-
-        memcpy(_saveCheckFunction + (IS_STEAM ? 0x1A1 : 0x150), "\xEB", 0x01);
 
         auto _addrGetMDLX = reinterpret_cast<char*>(YS::OBJENTRY::get_mdlx);
         auto _addrGetAPDX = reinterpret_cast<char*>(YS::OBJENTRY::get_apdx);
@@ -2274,20 +2298,6 @@ extern "C"
 
         ReFined::Continue::Submit();
 
-        Tz::HookIntro::Submit();
-        Tz::HookConfig::Submit();
-
-        // Prevent SOFTRESET from resetting Fade status for a smooth-ass transition.
-        
-        memcpy(reinterpret_cast<char*>(dk::SOFTRESET::SoftResetThread) + 0x1ED, "\x90\x90\x90\x90\x90", 0x05);
-
-        // I do not remember what this fucking does. But I believe it is important.
-
-        auto _fetchAdjustment = SignatureScan<char*>("\x48\x83\xEC\x28\x0F\x10\x41\x48\x4C\x8B\xC9\x4C\x8B\xD2\xF3\x0F\x10\x25\x00\x00\x00\x00\x0F\x57\xED\x0F\x11\x02\x41\x0F\x10\x00\x49\x8B\x41\x40", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxx");
-
-        memcpy(_fetchAdjustment + 0xF6, "\x90\x90\x90\x90\x90\x90", 0x06);
-        memcpy(_fetchAdjustment + 0x101, "\x90\x90\x90\x90\x90\x90", 0x06);
-
         // If NO_ASPECT is not called, handle all aspect modifications.
 
         if (!IS_NOASPECT)
@@ -2466,6 +2476,7 @@ extern "C"
             *reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0x048) = 0x00;
             *reinterpret_cast<uint32_t*>(dk::NEXT_FORM::instance + 0x214) = 0x00;
         }
+        #endif
 
         #ifndef BUILD_NMC
             // Prevent MAGIC clearing since we handle that now, and because it causes a crash.
@@ -2473,6 +2484,7 @@ extern "C"
             auto _funcMagicClear = SignatureScan<char*>("\x48\x89\x5C\x24\x18\x48\x89\x6C\x24\x20\x57\x48\x83\xEC\x40\x48\x8B\x05\x00\x00\x00\x00\x48\x89\x74\x24\x50\x48\x8B\xD8\x4C\x89\x74\x24\x58\x48\x85\xC0\x0F\x84\x00\x00\x00\x00\x0F\x29\x74\x24\x30\xF3\x0F\x10\x35\x00\x00\x00\x00\x0F\x29\x7C\x24\x20\x0F\x57\xFF\x48\x85\xDB\x75\x08", "xxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxx????xxxxxxxxx????xxxxxxxxxxxxx");
             memcpy(_funcMagicClear + 0x18A, "\x90\x90\x90\x90\x90", 0x05);
 
+        #ifndef BUILD_ARCHIPELAGO_LITE
             // Handle reFined.cfg file.
 
             wchar_t _configPath[MAX_PATH];
@@ -2517,6 +2529,7 @@ extern "C"
             if (ROOM_AMOUNT == 0x00)
                 ROOM_AMOUNT = 1;
         #endif
+        #endif
     }
 
     __declspec(dllexport) void OnFrame()
@@ -2524,6 +2537,7 @@ extern "C"
         // If Re:Fined's post-initialization-initialization is not done:
         if (!INITIALIZED)
         {
+            #if !defined(BUILD_ARCHIPELAGO) && !defined(BUILD_ARCHIPELAGO_LITE)
             // Abort function if the game is not loaded fully yet.
             auto _fetchFake = YS::MESSAGE::GetData(0x8ADC);
 
@@ -2571,6 +2585,98 @@ extern "C"
                     RedirectLEA(_patchShopfaceFirst + 0x62, _structOffset + 0x08);
                     RedirectLEA(_patchShopfaceThird + 0x41, _structOffset + 0x08);
                     RedirectLEA(_patchShopfaceSecond + 0x83, _structOffset + 0x08);
+                }
+            }
+
+            // If "00helpimage.bin" exists, patch all HELPIMAGE functions to use the file instead.
+            if (YS::FILE::GetSize("00helpimage.bin"))
+            {
+                vector<char*> _patchHelpImage
+                {
+                    SignatureScan<char*>("\x40\x53\x57\x41\x57\x48\x83\xEC\x50\x48\x8B\x0D\x00\x00\x00\x00\x48\x81\xC1\x40\x05\x00\x00\xE8\x00\x00\x00\x00", "xxxxxxxxxxxx????xxxxxxxx????"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x48\x89\x7C\x24\x20\x41\x56\x48\x83\xEC\x20\x8B\xF1\xE8\x00\x00\x00\x00\x48\x8B\x15\x00\x00\x00\x00\x48\x8D\x0D\x00\x00\x00\x00\x48\x8B\xE8\x4C\x8D\x35\x00\x00\x00\x00\x33\xC0", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx????xxx????xxxxxx????xx"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x20\x48\x63\xFA\x48\x8D\x2D\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxx????"),
+                    SignatureScan<char*>("\x48\x83\xEC\x28\x4C\x8B\x05\x00\x00\x00\x00\x49\x0F\xBE\x50\x0E\x41\x0F\xBE\x48\x0D\x8D\x42\x01\x3B\xC1\x7C\x23\x48\x8B\x0D\x00\x00\x00\x00\xBA\x14\x00\x00\x00", "xxxxxxx????xxxxxxxxxxxxxxxxxxxx????xxxxx"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x48\x89\x7C\x24\x20\x41\x56\x48\x83\xEC\x20\x40\x32\xF6\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x10\x48\x89\x6C\x24\x18\x48\x89\x74\x24\x20\x57\x48\x81\xEC\xD0\x00\x00\x00\x48\x8B\x05\x00\x00\x00\x00\x48\x33\xC4\x48\x89\x84\x24\xC0\x00\x00\x00\x33\xC9\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxx????"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x48\x89\x7C\x24\x20\x41\x56\x48\x83\xEC\x20\xE8\x00\x00\x00\x00\x0F\xB7\x0D\x00\x00\x00\x00\x4C\x8D\x35\x00\x00\x00\x00\x33\xFF", "xxxxxxxxxxxxxxxxxxxxxxxxxxx????xxx????xxx????xx"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x8B\xF9\x48\x8D\x1D\x00\x00\x00\x00\x83\xFF\xFF\x74\x08\x0F\xB6\x43\x02\x3B\xC7\x75\x0C\x0F\xB7\x0B\xE8\xC8\x34\x03\x00\x84\xC0\x75\x17", "xxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxx"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x50\x48\x8B\x0D\x00\x00\x00\x00\x48\x81\xC1\x20\x03\x00\x00\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxx????xxxxxxxx????"),
+                    SignatureScan<char*>("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x48\x89\x7C\x24\x20\x41\x56\x48\x83\xEC\x20\x8B\xF1\x8B\xDA\xB1\x01\xE8\x00\x00\x00\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx????"),
+                };
+
+                char* _allocHelpimage = (char*)malloc(YS::FILE::GetSize("00helpimage.bin"));
+                auto _readHelpimage = YS::FILE::Read("00helpimage.bin", _allocHelpimage);
+
+                if (_readHelpimage != 0x00)
+                {
+                    uint8_t _structCount = *_allocHelpimage;
+                    uint8_t _stringCount = *(_allocHelpimage + 0x08);
+
+                    uint32_t _structStart = *reinterpret_cast<uint32_t*>(_allocHelpimage + 0x04);
+                    uint32_t _stringStart = *reinterpret_cast<uint32_t*>(_allocHelpimage + 0x0C);
+
+                    YS::PANACEA_ALLOC::Allocate("HELPIMAGE_STRUCT", 0x10 * _structCount);
+                    YS::PANACEA_ALLOC::Allocate("HELPIMAGE_STRING", 0x04 * _stringCount);
+                    YS::PANACEA_ALLOC::Allocate("HELPIMAGE_FNAMES", 0x10 * _structCount);
+
+                    for (int i = 0; i < _structCount; i++)
+                    {
+                        auto _namePtr = _allocHelpimage + _structStart + (0x10 * i);
+                        auto _structPtr = reinterpret_cast<uint32_t*>(_allocHelpimage + _structStart + 0x0C + (0x10 * i));
+
+                        auto _fileNamePtr = reinterpret_cast<uint64_t>(YS::PANACEA_ALLOC::Get("HELPIMAGE_FNAMES") + 0x10 * i);
+
+                        memcpy(YS::PANACEA_ALLOC::Get("HELPIMAGE_FNAMES") + 0x10 * i, _namePtr, 0x0C);
+
+                        memcpy(YS::PANACEA_ALLOC::Get("HELPIMAGE_STRUCT") + 0x10 * i, &_fileNamePtr, 0x08);
+                        memcpy(YS::PANACEA_ALLOC::Get("HELPIMAGE_STRUCT") + 0x10 * i + 0x08, _structPtr, 0x04);
+                    }
+
+                    for (int i = 0; i < _stringCount; i++)
+                    {
+                        auto _stringPtr = reinterpret_cast<uint16_t*>(_allocHelpimage + _stringStart + (0x02 * i));
+                        memcpy(YS::PANACEA_ALLOC::Get("HELPIMAGE_STRING") + 0x02 * i, _stringPtr, 0x02);
+                    }
+
+                    char* _startAddr = const_cast<char*>(moduleInfo.startAddr);
+                    char* _getStructPtr = YS::PANACEA_ALLOC::Get("HELPIMAGE_STRUCT");
+
+                    uint32_t _structOffset = static_cast<uint32_t>(YS::PANACEA_ALLOC::Get("HELPIMAGE_STRUCT") - _startAddr);
+                    uint32_t _stringOffset = static_cast<uint32_t>(YS::PANACEA_ALLOC::Get("HELPIMAGE_STRING") - _startAddr);
+
+                    RedirectLEA(_patchHelpImage[9] + 0x03A, _getStructPtr);
+                    RedirectLEA(_patchHelpImage[9] + 0x053, _getStructPtr + 0x08);
+
+                    RedirectLEA(_patchHelpImage[0] + 0x0A0, _getStructPtr);
+                    RedirectLEA(_patchHelpImage[1] + 0x032, _getStructPtr);
+                    RedirectLEA(_patchHelpImage[3] + 0x045, _getStructPtr);
+                    RedirectLEA(_patchHelpImage[4] + 0x024, _getStructPtr);
+
+                    RedirectLEA(_patchHelpImage[1] + 0x028, _getStructPtr + 0x08);
+                    RedirectLEA(_patchHelpImage[6] + 0x026, _getStructPtr + 0x08);
+                    RedirectLEA(_patchHelpImage[7] + 0x00C, _getStructPtr + 0x08);
+
+                    RedirectMOVZX(_patchHelpImage[5] + 0x171, _getStructPtr + 0x08);
+                    RedirectMOVZX(_patchHelpImage[6] + 0x01F, _getStructPtr + 0x08);
+                    RedirectMOVZX(_patchHelpImage[4] + 0x030, _getStructPtr + 0x08);
+                    RedirectMOVZX(_patchHelpImage[4] + 0x05A, _getStructPtr + 0x08);
+
+                    memcpy(_patchHelpImage[8] + 0x1DE + 0x04, &_stringOffset, 0x04);
+                    memcpy(_patchHelpImage[2] + 0x099 + 0x04, &_structOffset, 0x04);
+
+                    auto _offsetCalc01 = _structOffset + 0x08;
+                    memcpy(_patchHelpImage[5] + 0x1B5 + 0x04, &_offsetCalc01, 0x04);
+
+                    auto _offsetCalc02 = _structOffset + 0x0A;
+                    memcpy(_patchHelpImage[5] + 0x101 + 0x03, &_offsetCalc02, 0x04);
+                    memcpy(_patchHelpImage[5] + 0x3F6 + 0x03, &_offsetCalc02, 0x04);
+                    memcpy(_patchHelpImage[8] + 0x1D6 + 0x04, &_offsetCalc02, 0x04);
+                    memcpy(_patchHelpImage[5] + 0x0F9 + 0x04, &_offsetCalc02, 0x04);
+                    memcpy(_patchHelpImage[5] + 0x3EA + 0x05, &_offsetCalc02, 0x04);
+
+                    _offsetCalc02++;
+                    memcpy(_patchHelpImage[2] + 0x029 + 0x04, &_offsetCalc02, 0x04);
                 }
             }
 
@@ -2807,43 +2913,55 @@ extern "C"
 
                 memcpy(const_cast<char*>(_currentTextPtr), _soraText, _soraSize + 0x01);
             }
+            #endif
 
             INITIALIZED = true;
         }
     
         else
         {
+            #ifndef BUILD_ARCHIPELAGO_LITE
             Tz::HookIntro::Handle();
             Tz::HookConfig::Handle();
 
-            RETRY_BATTLES();
             SOFT_RESET();
+            ENFORCE_FRAMERATE();
+            AUTOSAVE();
+            #endif
+
+            #if !defined(BUILD_ARCHIPELAGO) && !defined(BUILD_ARCHIPELAGO_LITE)
             HANDLE_MUSIC();
             HANDLE_RESOURCE();
+            RETRY_BATTLES();
             DISPLAY_NEXT_EXP();
-            ENFORCE_FRAMERATE();
             HANDLE_SHAKE();
             ENFORCE_PROMPTS();
-            AUTOSAVE();
             FIX_SAVE_POINT();
+            #endif
 
             #ifndef BUILD_NMC
             REGISTER_MAGIC();
             REGISTER_ABILITY();
             SHOW_INFORMATION();
             PROCESS_DEATH();
+
+            #if !defined(BUILD_ARCHIPELAGO) && !defined(BUILD_ARCHIPELAGO_LITE)
             HANDLE_GOA_LAND();
             ENFORCE_LOCKON();
             #endif
+            #endif
 
+            #if !defined(BUILD_ARCHIPELAGO) && !defined(BUILD_ARCHIPELAGO_LITE)
             for (auto _execPair : _execModule)
                 _execPair.second();
+
 
             if (DISCORD_ENABLED)
                 DISCORD_RPC();
 
             if (!IS_NOASPECT)
                 HANDLE_ASPECT();
+            #endif
         }
     }
 }

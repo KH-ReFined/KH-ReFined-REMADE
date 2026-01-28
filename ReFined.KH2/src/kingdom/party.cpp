@@ -271,27 +271,6 @@ void YS::PARTY::ChangeWeapon(char* task, int part, bool hand_secondary, int item
 			if (!_wpnHide)
 				reinterpret_cast<void(*)(uint64_t, int*)>(*reinterpret_cast<uint64_t*>(*_weaponAddrPtr + 0x88))(_weaponAddr, _weaponInt);
 
-			auto _wpnItem = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x24F0 + (0x114 * (_currentStack[0] - 0x01)));
-
-			if (_currentStack[1])
-			{
-				auto _formID = *(YS::AREA::SaveData + 0x3524);
-				_wpnItem = reinterpret_cast<uint16_t*>(YS::AREA::SaveData + 0x32F4 + (0x38 * (_formID - 1)));
-			}
-
-			// Read the weapon, just in case.
-			auto _fetchWeapon = *_wpnItem;
-
-			if (_fetchWeapon != _currentStack[2])
-			{
-				// Attach the target item as the weapon, removing it from the backyard.
-				YS::ITEM::ReduceBackyard(_currentStack[2], 0x01);
-				*_wpnItem = _currentStack[2];
-
-				// Add the previous weapon to the backyard.
-				YS::ITEM::GetBackyard(_fetchWeapon, 0x01);
-			}
-
 			if (_currentStack[3])
 			{
 				auto _parsePaxPtr = *reinterpret_cast<char**>(ryj::PAX::PaxList) - 0x80;
