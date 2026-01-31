@@ -13,6 +13,9 @@ extern "C"
 			using Start_t = void(*)(char* PAX, int EffectID, int Flags, int Type, int Priority);
 			static Start_t Start;
 
+			using StartBind_t = char* (*)(char* PAX, int EffectID, int Flags, int Type, int Priority, char* Object);
+			static StartBind_t StartBind;
+
 			static void Init(char* PAX, char* Data);
 
 			static char* PaxList;
